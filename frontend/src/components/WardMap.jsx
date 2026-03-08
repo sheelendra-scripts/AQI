@@ -3,6 +3,21 @@ import { MapContainer, TileLayer, GeoJSON, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import wardGeoJson from '../data/wards.json';
 
+/* ── Force map resize when container size changes ──── */
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    // Invalidate on mount so Leaflet recalculates tile layout
+    setTimeout(() => map.invalidateSize(), 100);
+
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    const container = map.getContainer();
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [map]);
+  return null;
+}
+
 /* ── AQI color mapping ───────────────────── */
 function getAqiColor(aqi) {
   if (aqi <= 50)  return '#22c55e';
@@ -136,7 +151,7 @@ export default function WardMap({ wardData = [], selectedWard, onSelectWard }) {
         scrollWheelZoom={true}
         zoomControl={false}
         className="ward-map"
-        style={{ height: '100%', width: '100%', borderRadius: 'var(--radius-lg)' }}
+        style={{ height: '100%', width: '100%', borderRadius: 'var(--radius-lg)', minHeight: 'inherit' }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org">OSM</a> &copy; <a href="https://carto.com">CARTO</a>'
@@ -149,6 +164,7 @@ export default function WardMap({ wardData = [], selectedWard, onSelectWard }) {
           onEachFeature={onEachFeature}
         />
         <FlyToWard center={flyCenter} />
+        <MapResizer />
       </MapContainer>
       <MapLegend />
     </div>

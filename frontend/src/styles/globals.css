@@ -744,6 +744,7 @@ body::after {
   flex: 1;
   position: relative;
   min-height: 500px;
+  height: 100%;
   background: #f8fafc;
 }
 
@@ -1117,10 +1118,12 @@ body::after {
   position: relative;
   height: 100%;
   width: 100%;
+  min-height: inherit;
 }
 
 .ward-map {
   border-radius: 0 !important;
+  height: 100% !important;
 }
 
 .leaflet-control-zoom {
@@ -1222,137 +1225,8 @@ body::after {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Mobile Responsive Polish — Phase 2
+   Mobile Responsive Polish — Phase 2 (consolidated at end of file)
    ═══════════════════════════════════════════════════════════ */
-
-@media (max-width: 768px) {
-  /* Map page mobile */
-  .map-page {
-    height: auto;
-    min-height: calc(100vh - 80px);
-  }
-
-  .map-layout {
-    flex-direction: column;
-    height: auto;
-  }
-
-  .ward-list-panel {
-    width: 100% !important;
-    max-height: 200px;
-    border-right: none;
-    border-bottom: 1px solid rgba(16,185,129,0.08);
-  }
-
-  .map-container-wrapper {
-    min-height: 400px;
-  }
-
-  .ward-detail-panel {
-    position: fixed;
-    right: 8px;
-    top: auto;
-    bottom: 8px;
-    width: calc(100% - 16px);
-    max-height: 60vh;
-    border-radius: var(--radius-lg) var(--radius-lg) var(--radius-md) var(--radius-md);
-  }
-
-  .city-summary-bar {
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
-  }
-
-  .city-wards-count {
-    margin-left: 0;
-  }
-
-  /* Dashboard mobile */
-  .dashboard-top {
-    grid-template-columns: 1fr !important;
-  }
-
-  .dashboard-bottom {
-    grid-template-columns: 1fr !important;
-  }
-
-  .page-header h2 {
-    font-size: 1.5rem;
-  }
-
-  /* Charts mobile */
-  .chart-header {
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
-  }
-
-  .chart-tabs {
-    flex-wrap: wrap;
-  }
-
-  /* Metrics grid mobile */
-  .metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-
-  .metric-card {
-    padding: 14px;
-  }
-
-  .metric-value {
-    font-size: 1.4rem;
-  }
-
-  /* Glass card mobile */
-  .glass-card {
-    padding: 16px;
-    border-radius: var(--radius-md);
-  }
-
-  /* Map legend mobile */
-  .map-legend {
-    bottom: 10px;
-    left: 10px;
-    padding: 10px 12px;
-    font-size: 0.7rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .metrics-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .metric-value {
-    font-size: 1.2rem;
-  }
-
-  .metric-card {
-    padding: 12px;
-  }
-
-  .aqi-gauge-ring {
-    width: 160px;
-    height: 160px;
-  }
-
-  .aqi-value {
-    font-size: 3rem;
-  }
-
-  .page-header h2 {
-    font-size: 1.3rem;
-  }
-
-  .main-content {
-    padding: 12px;
-    padding-top: calc(var(--header-height) + 12px);
-  }
-}
 
 /* ═══════════════════════════════════════════════════════════
    Smooth transitions between pages
@@ -1369,6 +1243,307 @@ body::after {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Mobile Responsive — Full Overhaul (max-width: 1024px / 768px / 480px)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Map fixes ──────────────────────────────────────────── */
+/* Ensure map container always has an explicit pixel height on mobile */
+@media (max-width: 1024px) {
+  .map-page {
+    height: auto;
+    min-height: unset;
+    padding-bottom: 24px;
+  }
+
+  .map-layout {
+    flex-direction: column;
+    height: auto;
+    min-height: unset;
+    border-radius: var(--radius-md);
+    overflow: visible;
+  }
+
+  .ward-list-panel {
+    width: 100% !important;
+    max-height: 220px;
+    border-right: none;
+    border-bottom: 1px solid rgba(16,185,129,0.08);
+  }
+
+  /* Give the map container an explicit height on mobile — critical for Leaflet */
+  .map-container-wrapper {
+    height: 55vw;
+    min-height: 300px;
+    max-height: 480px;
+  }
+
+  .ward-map-wrapper {
+    height: 100%;
+    min-height: 300px;
+  }
+
+  /* Leaflet map must fill its wrapper */
+  .ward-map,
+  .ward-map .leaflet-container {
+    height: 100% !important;
+    min-height: 300px;
+  }
+
+  .ward-detail-panel {
+    position: fixed;
+    right: 8px;
+    top: auto;
+    bottom: 8px;
+    width: calc(100% - 16px);
+    max-height: 55vh;
+    overflow-y: auto;
+    border-radius: var(--radius-lg) var(--radius-lg) var(--radius-md) var(--radius-md);
+  }
+
+  .city-summary-bar {
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .city-wards-count {
+    margin-left: 0;
+  }
+}
+
+/* ── Sidebar hide, mobile header always visible ─────────── */
+@media (max-width: 1024px) {
+  /* Sidebar hidden off-screen by default */
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 200;
+    box-shadow: var(--shadow-xl);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Mobile header always visible */
+  .mobile-header {
+    display: flex;
+    z-index: 150;
+  }
+
+  /* Push main content below the mobile header */
+  .main-content {
+    margin-left: 0;
+    padding: 16px;
+    padding-top: calc(var(--header-height) + 16px);
+  }
+}
+
+/* ── Prevent any horizontal overflow globally ───────────── */
+@media (max-width: 1024px) {
+  .main-content,
+  .app-layout {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* All sections should remain inside viewport */
+  .glass-card,
+  .chart-container,
+  .metric-card {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+/* ── Dashboard ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .dashboard-top {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-bottom {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Analytics ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Override the 1fr 1fr comparison grid */
+  .comparison-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Pollutant selector wraps cleanly */
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .chart-tabs {
+    flex-wrap: wrap;
+  }
+
+  /* Stats mini cards — 2 per row on mobile */
+  .stat-mini {
+    min-width: 0;
+  }
+}
+
+/* ── Metrics Grid ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .metric-card {
+    padding: 14px;
+  }
+
+  .metric-value {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .metric-value {
+    font-size: 1.2rem;
+  }
+
+  .metric-card {
+    padding: 12px;
+  }
+}
+
+/* ── Page headers ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .glass-card {
+    padding: 16px;
+    border-radius: var(--radius-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h2 {
+    font-size: 1.3rem;
+  }
+
+  .main-content {
+    padding: 12px;
+    padding-top: calc(var(--header-height) + 12px);
+  }
+}
+
+/* ── AQI Gauge ──────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .aqi-gauge-ring {
+    width: 160px;
+    height: 160px;
+  }
+
+  .aqi-value {
+    font-size: 3rem;
+  }
+}
+
+/* ── ML Insights grid ───────────────────────────────────── */
+@media (max-width: 768px) {
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Admin panel tabs ───────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Admin tab bar wraps to 2 rows */
+  .admin-tabs-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Policy source tabs wrap */
+  .policy-source-tabs {
+    flex-wrap: wrap;
+  }
+
+  /* Action dispatch button stays on same row but can shrink */
+  .action-dispatch-btn {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+  }
+
+  /* Activity log stays scrollable */
+  .activity-log {
+    font-size: 0.65rem;
+  }
+}
+
+/* ── Advisory page ──────────────────────────────────────── */
+@media (max-width: 640px) {
+  .advisory-profiles-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Alerts page ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .alerts-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ── Map legend ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .map-legend {
+    bottom: 10px;
+    left: 10px;
+    padding: 10px 12px;
+    font-size: 0.68rem;
+  }
+}
+
+/* ── Heatmap cells — readable on small screens ──────────── */
+@media (max-width: 480px) {
+  .heatmap-cell {
+    font-size: 0.55rem;
+  }
+}
+
+/* ── Scrollable wrappers for wide content ───────────────── */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Touch-friendly tap targets ─────────────────────────── */
+@media (max-width: 768px) {
+  .nav-link {
+    padding: 14px 16px;
+    font-size: 1rem;
+  }
+
+  .menu-toggle {
+    width: 44px;
+    height: 44px;
+  }
+
+  .map-btn,
+  .chart-tab {
+    min-height: 36px;
   }
 }
 

@@ -296,7 +296,7 @@ export default function AdvisoryPage() {
         <motion.div key={`${profile}-${aqi}`}
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
           transition={{ delay: 0.05 }}
-          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
           {/* Do's */}
           <div style={{ ...cardStyle, borderTop: '3px solid #22c55e' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>

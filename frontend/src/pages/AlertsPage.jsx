@@ -104,7 +104,7 @@ function AddRuleModal({ onClose, onCreated }) {
               <input style={inputStyle} value={form.description} onChange={e => set('description', e.target.value)}
                 placeholder="Optional description" />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Metric</label>
                 <select style={inputStyle} value={form.metric} onChange={e => set('metric', e.target.value)}>
@@ -118,7 +118,7 @@ function AddRuleModal({ onClose, onCreated }) {
                   placeholder="e.g. 200" required />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Condition</label>
                 <select style={inputStyle} value={form.operator} onChange={e => set('operator', e.target.value)}>
@@ -260,7 +260,7 @@ export default function AlertsPage() {
       {/* Stats row */}
       {stats && (
         <motion.div variants={fade} initial="hidden" animate="visible" transition={{ delay: 0.05 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, marginBottom: 24 }}>
           {[
             { label: 'Total Alerts', value: stats.total, icon: Bell, color: '#10b981' },
             { label: 'Critical', value: stats.critical, icon: AlertCircle, color: '#ef4444' },
