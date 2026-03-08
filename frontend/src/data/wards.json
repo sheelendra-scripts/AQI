@@ -1,0 +1,186 @@
+{
+  "type": "FeatureCollection",
+  "name": "MCD_Delhi_Zones",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_id": "zone_01",
+        "name": "Central Zone",
+        "zone": "Central",
+        "areas": "Daryaganj, ITO, Rajghat, Turkman Gate",
+        "population": 582320,
+        "area_km2": 14.5
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[77.2050, 28.6220], [77.2100, 28.6340], [77.2200, 28.6450], [77.2380, 28.6470], [77.2500, 28.6400], [77.2480, 28.6280], [77.2400, 28.6180], [77.2250, 28.6150], [77.2050, 28.6220]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_id": "zone_02",
+        "name": "South Zone",
+        "zone": "South",
+        "areas": "Hauz Khas, GK, Saket, Mehrauli, Khanpur",
+        "population": 1250000,
+        "area_km2": 68.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[77.1450, 28.5700], [77.1550, 28.5950], [77.1750, 28.6100], [77.2050, 28.6220], [77.2250, 28.6150], [77.2550, 28.6050], [77.2750, 28.5700], [77.2800, 28.5400], [77.2700, 28.5100], [77.2450, 28.4950], [77.2100, 28.4900], [77.1750, 28.5100], [77.1500, 28.5400], [77.1450, 28.5700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_id": "zone_03",
+        "name": "Shahdara North Zone",
+        "zone": "Shahdara North",
+        "areas": "Seelampur, Nand Nagri, Gokulpuri, Mustafabad",
+        "population": 980000,
+        "area_km2": 22.6
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[77.2600, 28.6550], [77.2650, 28.6750], [77.2700, 28.6950], [77.2800, 28.7150], [77.3050, 28.7200], [77.3250, 28.7100], [77.3300, 28.6850], [77.3200, 28.6600], [77.3000, 28.6500], [77.2800, 28.6480], [77.2600, 28.6550]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_id": "zone_04",
+        "name": "Shahdara South Zone",
+        "zone": "Shahdara South",
+        "areas": "Preet Vihar, Laxmi Nagar, Mayur Vihar, Patparganj",
+        "population": 1050000,
+        "area_km2": 32.4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[77.2500, 28.6400], [77.2600, 28.6550], [77.2800, 28.6480], [77.3000, 28.6500], [77.3200, 28.6600], [77.3400, 28.6450], [77.3350, 28.6200], [77.3100, 28.5950], [77.2800, 28.5900], [77.2550, 28.6050], [77.2480, 28.6280], [77.2500, 28.6400]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_id": "zone_05",
+        "name": "City SP Zone",
+        "zone": "City SP",
+        "areas": "Chandni Chowk, Sadar Bazaar, Paharganj, Jama Masjid",
+        "population": 640000,
+        "area_km2": 12.3
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[77.2000, 28.6450], [77.2050, 28.6600], [77.2200, 28.6700], [77.2400, 28.6700], [77.2550, 28.6600], [77.2600, 28.6550], [77.2380, 28.6470], [77.2200, 28.6450], [77.2100, 28.6340], [77.2050, 28.6350], [77.2000, 28.6450]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_id": "zone_06",
+        "name": "Civil Lines Zone",
+        "zone": "Civil Lines",
+        "areas": "Civil Lines, Timarpur, Kamla Nagar, Burari",
+        "population": 780000,
+        "area_km2": 28.7
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[77.1800, 28.6700], [77.1900, 28.7050], [77.2050, 28.7250], [77.2300, 28.7350], [77.2550, 28.7200], [77.2650, 28.6950], [77.2650, 28.6750], [77.2550, 28.6600], [77.2400, 28.6700], [77.2200, 28.6700], [77.2050, 28.6600], [77.1800, 28.6700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_id": "zone_07",
+        "name": "Karol Bagh Zone",
+        "zone": "Karol Bagh",
+        "areas": "Karol Bagh, Patel Nagar, Rajender Nagar, Pusa Road",
+        "population": 590000,
+        "area_km2": 13.8
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[77.1550, 28.6300], [77.1600, 28.6500], [77.1700, 28.6650], [77.1800, 28.6700], [77.2050, 28.6600], [77.2050, 28.6350], [77.2050, 28.6220], [77.1750, 28.6100], [77.1550, 28.6300]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_id": "zone_08",
+        "name": "Najafgarh Zone",
+        "zone": "Najafgarh",
+        "areas": "Najafgarh, Dwarka, Kakrola, Chhawla, Paprawat",
+        "population": 1450000,
+        "area_km2": 226.4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[76.9000, 28.5300], [76.8900, 28.5700], [76.9000, 28.6100], [76.9200, 28.6400], [76.9600, 28.6600], [77.0100, 28.6650], [77.0500, 28.6550], [77.0800, 28.6350], [77.0900, 28.6100], [77.0800, 28.5800], [77.0600, 28.5500], [77.0300, 28.5200], [77.0000, 28.5100], [76.9500, 28.5100], [76.9000, 28.5300]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_id": "zone_09",
+        "name": "Narela Zone",
+        "zone": "Narela",
+        "areas": "Narela, Bawana, Holambi, Alipur, Bakhtawarpur",
+        "population": 920000,
+        "area_km2": 178.5
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[76.9600, 28.7700], [76.9700, 28.8200], [77.0000, 28.8600], [77.0400, 28.8800], [77.0900, 28.8850], [77.1300, 28.8700], [77.1500, 28.8400], [77.1500, 28.7950], [77.1350, 28.7600], [77.1100, 28.7400], [77.0700, 28.7300], [77.0200, 28.7300], [76.9800, 28.7400], [76.9600, 28.7700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_id": "zone_10",
+        "name": "Rohini Zone",
+        "zone": "Rohini",
+        "areas": "Rohini Sec 1-25, Pitampura, Prashant Vihar, Budh Vihar",
+        "population": 1100000,
+        "area_km2": 43.8
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[77.0700, 28.7300], [77.0800, 28.7500], [77.1000, 28.7650], [77.1100, 28.7400], [77.1350, 28.7600], [77.1500, 28.7500], [77.1600, 28.7300], [77.1600, 28.7050], [77.1500, 28.6900], [77.1300, 28.6800], [77.1100, 28.6750], [77.0900, 28.6900], [77.0800, 28.7100], [77.0700, 28.7300]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_id": "zone_11",
+        "name": "West Zone",
+        "zone": "West",
+        "areas": "Rajouri Garden, Janakpuri, Tilak Nagar, Vikaspuri, Uttam Nagar",
+        "population": 1380000,
+        "area_km2": 56.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[77.0500, 28.6550], [77.0800, 28.6350], [77.0900, 28.6100], [77.1550, 28.6300], [77.1750, 28.6100], [77.1450, 28.5700], [77.1000, 28.5600], [77.0800, 28.5800], [77.0600, 28.5500], [77.0300, 28.5800], [77.0200, 28.6100], [77.0200, 28.6400], [77.0500, 28.6550]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_id": "zone_12",
+        "name": "Keshavpuram Zone",
+        "zone": "Keshavpuram",
+        "areas": "Ashok Vihar, Shalimar Bagh, Wazirpur, Tri Nagar, Saraswati Vihar",
+        "population": 870000,
+        "area_km2": 28.4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[77.1100, 28.6750], [77.1300, 28.6800], [77.1500, 28.6900], [77.1600, 28.7050], [77.1800, 28.6700], [77.1700, 28.6650], [77.1600, 28.6500], [77.1550, 28.6300], [77.0900, 28.6100], [77.0800, 28.6350], [77.0500, 28.6550], [77.0700, 28.6650], [77.0900, 28.6900], [77.1100, 28.6750]]]
+      }
+    }
+  ]
+}
