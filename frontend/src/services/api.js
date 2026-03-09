@@ -32,7 +32,16 @@ export const updateAlertRule  = (id, updates)        => api.put(`/api/alerts/rul
 export const deleteAlertRule  = (id)                 => api.delete(`/api/alerts/rules/${id}`).then(r => r.data);
 export const clearAlerts      = ()                   => api.delete('/api/alerts').then(r => r.data);
 
-// ─── ML Predictions API ──────────────────────────────
+// ─── ML Predictions API ──────────────────────────────// Client-side rule-based source detection fallback
+export function detectSourceLocal(pm25, co, no2, tvoc) {
+  let src = 'vehicle', conf = 0.55;
+  if (co > 5.0 && tvoc > 0.8) { src = 'biomass'; conf = 0.78; }
+  else if (no2 > 0.15 && co > 4.0) { src = 'industrial'; conf = 0.75; }
+  else if (tvoc > 1.0 && pm25 > 180) { src = 'construction'; conf = 0.72; }
+  else if ((pm25 / Math.max(co, 0.01)) > 30 && no2 > 0.08) { src = 'vehicle'; conf = 0.80; }
+  else if (co > 3.0) { src = 'vehicle'; conf = 0.68; }
+  return { source: src, confidence: conf, probabilities: { [src]: conf } };
+}
 export const fetchMLSource = () => api.get('/api/ml/source').then(r => r.data);
 export const fetchMLForecast = (horizon = 24) => api.get(`/api/ml/forecast?horizon=${horizon}`).then(r => r.data);
 export const fetchMLAnomaly = () => api.get('/api/ml/anomaly').then(r => r.data);
@@ -53,19 +62,22 @@ function getAqiCategory(aqi) {
 }
 
 function parseThingSpeakFeed(feed) {
+  const pm25 = safeFloat(feed.field3);
+  const tvoc = safeFloat(feed.field4);
+  const no2 = safeFloat(feed.field5);
+  const co = safeFloat(feed.field6);
   const aqi = safeInt(feed.field7);
   const cat = getAqiCategory(aqi);
+  const src = detectSourceLocal(pm25, co, no2, tvoc);
   return {
     timestamp: feed.created_at,
     temperature: safeFloat(feed.field1),
     humidity: safeFloat(feed.field2),
-    pm25: safeFloat(feed.field3),
-    tvoc: safeFloat(feed.field4),
-    no2: safeFloat(feed.field5),
-    co: safeFloat(feed.field6),
+    pm25, tvoc, no2, co,
     aqi,
     aqi_category: cat.category,
     aqi_color: cat.color,
+    source_detected: src.source,
     status: 'online',
   };
 }

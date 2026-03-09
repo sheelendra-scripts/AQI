@@ -6,7 +6,7 @@ import MetricsGrid from '../components/MetricsGrid';
 import TimeSeriesChart from '../components/TimeSeriesChart';
 import HealthAdvisory from '../components/HealthAdvisory';
 import { useLiveData, useHistoryData, useTimeAgo } from '../hooks/useData';
-import { fetchMLSource, fetchMLForecast } from '../services/api';
+import { fetchMLSource, fetchMLForecast, detectSourceLocal } from '../services/api';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -25,20 +25,30 @@ export default function Dashboard() {
 
   // Pre-seed from live data immediately so UI doesn't show "Loading..."
   useEffect(() => {
-    if (data?.source_detected && !mlSource) {
+    if (data?.source_detected && data.source_detected !== 'unknown' && !mlSource) {
       setMlSource({ source: data.source_detected, confidence: null, probabilities: {} });
     }
   }, [data]);
 
   useEffect(() => {
-    fetchMLSource().then(setMlSource).catch(() => {});
+    const fetchSource = () => {
+      fetchMLSource()
+        .then(res => { if (res && res.source) setMlSource(res); })
+        .catch(() => {
+          // Client-side fallback source detection
+          if (data) {
+            setMlSource(detectSourceLocal(data.pm25 || 0, data.co || 0, data.no2 || 0, data.tvoc || 0));
+          }
+        });
+    };
+    fetchSource();
     fetchMLForecast(6).then(setMlForecast).catch(() => {});
     const iv = setInterval(() => {
-      fetchMLSource().then(setMlSource).catch(() => {});
+      fetchSource();
       fetchMLForecast(6).then(setMlForecast).catch(() => {});
     }, 60000);
     return () => clearInterval(iv);
-  }, []);
+  }, [data]);
 
   if (loading && !data) {
     return (
@@ -159,7 +169,7 @@ export default function Dashboard() {
                     <span style={{ fontSize: '2rem' }}>{m.icon}</span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.05rem', color: m.color }}>{m.label}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--earth-400)' }}>Confidence: {(mlSource.confidence * 100).toFixed(0)}%</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--earth-400)' }}>Confidence: {((mlSource.confidence || 0) * 100).toFixed(0)}%</div>
                     </div>
                   </div>
                   {sorted.map(([src, prob]) => {

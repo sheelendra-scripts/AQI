@@ -55,6 +55,18 @@ def _generate_demo_reading(ts: Optional[datetime] = None) -> dict:
     aqi = calculate_aqi(pm25, co, no2)
     cat = get_aqi_category(aqi)
 
+    # Detect source inline so demo readings never show "unknown"
+    try:
+        _hour = hour
+        _src = _detect_source(pm25=round(pm25, 1), co=round(co, 2),
+                              no2=round(no2, 3), tvoc=round(tvoc, 2),
+                              temperature=round(max(15, min(45, temperature)), 1),
+                              humidity=round(max(20, min(95, humidity)), 1),
+                              hour=_hour)
+        source = _src.get("source", "vehicle")
+    except Exception:
+        source = "vehicle"
+
     return {
         "timestamp": now.isoformat().replace("+00:00", "Z"),
         "temperature": round(max(15, min(45, temperature)), 1),
@@ -66,7 +78,7 @@ def _generate_demo_reading(ts: Optional[datetime] = None) -> dict:
         "aqi": aqi,
         "aqi_category": cat["category"],
         "aqi_color": cat["color"],
-        "source_detected": "unknown",
+        "source_detected": source,
         "ward_id": "ward_01",
         "demo": True,
     }

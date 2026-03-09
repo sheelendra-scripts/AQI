@@ -8,7 +8,8 @@ import {
   Brain, Zap, AlertTriangle, TrendingUp, Clock, Eye, Activity,
   RefreshCw, Shield, Flame, Wind, CloudRain, Atom
 } from 'lucide-react';
-import { fetchMLSource, fetchMLForecast, fetchMLAnomaly } from '../services/api';
+import { fetchMLSource, fetchMLForecast, fetchMLAnomaly, detectSourceLocal } from '../services/api';
+import { useLiveData } from '../hooks/useData';
 
 const SOURCE_META = {
   vehicle:      { icon: '🚗', label: 'Vehicle Emissions', color: '#f97316', desc: 'Traffic exhaust & brake dust' },
@@ -289,6 +290,7 @@ export default function MLInsights() {
   const [loading, setLoading] = useState({ source: true, forecast: true, anomaly: true });
   const [horizon, setHorizon] = useState(24);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const { data: liveData } = useLiveData();
 
   const fetchAll = useCallback(async () => {
     setLoading({ source: true, forecast: true, anomaly: true });
@@ -298,13 +300,18 @@ export default function MLInsights() {
         fetchMLForecast(horizon).catch(() => null),
         fetchMLAnomaly().catch(() => null),
       ]);
-      setSourceData(src);
+      // Use API result or client-side fallback for source
+      if (src && src.source && src.source !== 'unknown') {
+        setSourceData(src);
+      } else if (liveData) {
+        setSourceData(detectSourceLocal(liveData.pm25 || 0, liveData.co || 0, liveData.no2 || 0, liveData.tvoc || 0));
+      }
       setForecastData(fc);
       setAnomalyData(an);
       setLastUpdated(new Date());
     } catch (e) { /* swallow */ }
     setLoading({ source: false, forecast: false, anomaly: false });
-  }, [horizon]);
+  }, [horizon, liveData]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
