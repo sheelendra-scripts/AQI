@@ -47,7 +47,7 @@ function LoadingScreen({ step }) {
 }
 
 export default function Dashboard() {
-  const { data, loading, loadingStep, refetch } = useLiveData();
+  const { data, loading, loadingStep, backendStatus, refetch } = useLiveData();
   const { data: history, loading: historyLoading } = useHistoryData(300);
   const timeAgo = useTimeAgo(data?.timestamp);
   const [mlSource, setMlSource] = useState(null);
@@ -131,6 +131,28 @@ export default function Dashboard() {
           </div>
         </div>
       </motion.div>
+
+      {/* Cold-start banner */}
+      {backendStatus === 'waking' && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            gridColumn: '1 / -1',
+            display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(251,191,36,0.12)',
+            border: '1px solid rgba(251,191,36,0.35)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '8px 16px',
+            fontSize: '0.8rem', color: '#92400e',
+            fontWeight: 500,
+          }}
+        >
+          <span style={{ fontSize: '1rem' }}>⚡</span>
+          Showing live IoT sensor data directly &nbsp;·&nbsp; Backend server is warming up (may take ~30s)&nbsp;
+          <span style={{ marginLeft: 'auto', fontWeight: 400, opacity: 0.7 }}>Full analytics available shortly</span>
+        </motion.div>
+      )}
 
       {/* Top section: AQI Gauge + Metrics */}
       <div className="dashboard-top">

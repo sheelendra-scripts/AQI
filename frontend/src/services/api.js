@@ -116,17 +116,29 @@ export async function fetchThingSpeakHistory(results = 100) {
 }
 
 // ─── Smart fetcher: tries backend first, falls back to ThingSpeak ─
+// On cold start, ThingSpeak responds in ~1s while backend takes ~30s
 export async function getLiveData() {
   try {
     const data = await fetchLiveData();
-    if (data.status !== 'offline') return data;
+    if (data && data.status !== 'offline') return { ...data, _source: 'backend' };
   } catch {
-    // Backend not available
+    // Backend not available (cold start or down)
   }
   try {
-    return await fetchThingSpeakLive();
+    const ts = await fetchThingSpeakLive();
+    return { ...ts, _source: 'thingspeak' };
   } catch {
     return null;
+  }
+}
+
+// Check if backend is alive — used for warm-up detection
+export async function pingBackend() {
+  try {
+    const resp = await axios.get(`${API_BASE}/api/health`, { timeout: 5000 });
+    return resp.status === 200;
+  } catch {
+    return false;
   }
 }
 
