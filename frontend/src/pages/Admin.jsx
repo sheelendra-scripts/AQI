@@ -202,10 +202,10 @@ function SystemHealth({ liveData }) {
 /* ── Policy Actions Panel ──────────────────────────── */
 function PolicyPanel({ liveAqi }) {
   const [selectedSource, setSelectedSource] = useState('vehicle');
-  const [selectedAqi, setSelectedAqi]       = useState(250);
+  const [selectedAqi, setSelectedAqi]       = useState(() => liveAqi || 150);
   const [dispatched, setDispatched]         = useState({});
 
-  const aqi = liveAqi || selectedAqi;
+  const aqi = selectedAqi;   // slider always drives simulation; liveAqi shown as reference only
   const policySource = POLICY_DATA[selectedSource];
 
   const getVisibleActions = () => {
