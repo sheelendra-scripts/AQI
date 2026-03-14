@@ -2,8 +2,7 @@
 import axios from 'axios';
 
 // Auto-detect: use VITE_API_URL env var, or fallback to localhost for dev
-const API_BASE = import.meta.env.VITE_API_URL
-  || (window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://aqms-backend-ue5x.onrender.com');
+const API_BASE = import.meta.env.VITE_API_URL || window.__BACKEND_URL__ || (window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://aqms-backend-ue5x.onrender.com');
 const THINGSPEAK_CHANNEL = '2697383';
 const THINGSPEAK_API_KEY = 'RAYZJW1K4FBNIVP6';
 const THINGSPEAK_BASE = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL}`;
@@ -35,13 +34,13 @@ export const fetchZoneAttribution = (zoneId) => api.get(`/api/attribution/zone/$
 export const fetchCityAttribution = () => api.get('/api/attribution/city').then(r => r.data);
 
 // ─── Alerts API ─────────────────────────────────────
-export const fetchAlerts      = (limit = 50)         => api.get(`/api/alerts?limit=${limit}`).then(r => r.data);
-export const fetchAlertStats  = ()                   => api.get('/api/alerts/stats').then(r => r.data);
-export const fetchAlertRules  = ()                   => api.get('/api/alerts/rules').then(r => r.data);
-export const createAlertRule  = (rule)               => api.post('/api/alerts/rules', rule).then(r => r.data);
-export const updateAlertRule  = (id, updates)        => api.put(`/api/alerts/rules/${id}`, updates).then(r => r.data);
-export const deleteAlertRule  = (id)                 => api.delete(`/api/alerts/rules/${id}`).then(r => r.data);
-export const clearAlerts      = ()                   => api.delete('/api/alerts').then(r => r.data);
+export const fetchAlerts = (limit = 50) => api.get(`/api/alerts?limit=${limit}`).then(r => r.data);
+export const fetchAlertStats = () => api.get('/api/alerts/stats').then(r => r.data);
+export const fetchAlertRules = () => api.get('/api/alerts/rules').then(r => r.data);
+export const createAlertRule = (rule) => api.post('/api/alerts/rules', rule).then(r => r.data);
+export const updateAlertRule = (id, updates) => api.put(`/api/alerts/rules/${id}`, updates).then(r => r.data);
+export const deleteAlertRule = (id) => api.delete(`/api/alerts/rules/${id}`).then(r => r.data);
+export const clearAlerts = () => api.delete('/api/alerts').then(r => r.data);
 
 // ─── ML Predictions API ──────────────────────────────// Client-side rule-based source detection fallback
 export function detectSourceLocal(pm25, co, no2, tvoc) {
@@ -86,7 +85,7 @@ function safeInt(val) { return val ? parseInt(val, 10) || 0 : 0; }
 
 // CPCB AQI helper
 function getAqiCategory(aqi) {
-  if (aqi <= 50)  return { category: 'Good', color: '#22c55e' };
+  if (aqi <= 50) return { category: 'Good', color: '#22c55e' };
   if (aqi <= 100) return { category: 'Satisfactory', color: '#a3e635' };
   if (aqi <= 200) return { category: 'Moderate', color: '#b45309' };
   if (aqi <= 300) return { category: 'Poor', color: '#f97316' };
@@ -177,7 +176,7 @@ export function createWebSocket(onMessage) {
     ws = new WebSocket(wsUrl);
     ws.onopen = () => console.log('🌿 WebSocket connected');
     ws.onmessage = (e) => {
-      try { onMessage(JSON.parse(e.data)); } catch {}
+      try { onMessage(JSON.parse(e.data)); } catch { }
     };
     ws.onclose = () => {
       console.log('WebSocket closed, reconnecting in 5s...');
