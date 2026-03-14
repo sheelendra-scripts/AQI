@@ -5,7 +5,7 @@
 
 cat << EOF > /usr/share/nginx/html/config.js
 
-window.__BACKEND_URL__ = "http://${BACKEND_HOST}:${BACKEND_PORT}";
+window.__BACKEND_URL__ = "https://${BACKEND_HOST}:${BACKEND_PORT}";
 EOF
 
 exec "$@"
