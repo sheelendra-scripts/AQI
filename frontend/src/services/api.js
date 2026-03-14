@@ -23,6 +23,17 @@ export const fetchHealth = () => api.get('/api/health').then(r => r.data);
 export const fetchWards = () => api.get('/api/wards').then(r => r.data);
 export const fetchWard = (wardId) => api.get(`/api/wards/${wardId}`).then(r => r.data);
 
+// ─── Wind + Plume + Attribution APIs ─────────────────
+export const fetchWindCurrent = () => api.get('/api/wind/current').then(r => r.data);
+export const fetchWindField = (gridSize = 12) => api.get(`/api/wind/field?grid_size=${gridSize}`).then(r => r.data);
+export const fetchWindHistory = (hours = 24) => api.get(`/api/wind/history?hours=${hours}`).then(r => r.data);
+export const fetchTrajectory = (wardId, hours = 3) => api.get(`/api/plume/trajectory/${wardId}?hours=${hours}`).then(r => r.data);
+export const fetchUpwind = (wardId, radiusKm = 6) => api.get(`/api/plume/upwind/${wardId}?radius_km=${radiusKm}`).then(r => r.data);
+export const fetchFlowChain = (zoneId) => api.get(`/api/plume/flow-chain/${zoneId}`).then(r => r.data);
+export const fetchAttribution = (wardId) => api.get(`/api/attribution/ward/${wardId}`).then(r => r.data);
+export const fetchZoneAttribution = (zoneId) => api.get(`/api/attribution/zone/${zoneId}`).then(r => r.data);
+export const fetchCityAttribution = () => api.get('/api/attribution/city').then(r => r.data);
+
 // ─── Alerts API ─────────────────────────────────────
 export const fetchAlerts      = (limit = 50)         => api.get(`/api/alerts?limit=${limit}`).then(r => r.data);
 export const fetchAlertStats  = ()                   => api.get('/api/alerts/stats').then(r => r.data);
@@ -77,7 +88,7 @@ function safeInt(val) { return val ? parseInt(val, 10) || 0 : 0; }
 function getAqiCategory(aqi) {
   if (aqi <= 50)  return { category: 'Good', color: '#22c55e' };
   if (aqi <= 100) return { category: 'Satisfactory', color: '#a3e635' };
-  if (aqi <= 200) return { category: 'Moderate', color: '#facc15' };
+  if (aqi <= 200) return { category: 'Moderate', color: '#b45309' };
   if (aqi <= 300) return { category: 'Poor', color: '#f97316' };
   if (aqi <= 400) return { category: 'Very Poor', color: '#ef4444' };
   return { category: 'Severe', color: '#991b1b' };

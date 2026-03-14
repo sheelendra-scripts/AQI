@@ -14,7 +14,7 @@ import { useLiveData } from '../hooks/useData';
 const SOURCE_META = {
   vehicle:      { icon: '🚗', label: 'Vehicle Emissions', color: '#f97316', desc: 'Traffic exhaust & brake dust' },
   industrial:   { icon: '🏭', label: 'Industrial Activity', color: '#ef4444', desc: 'Factory emissions & chemical processing' },
-  construction: { icon: '🏗️', label: 'Construction Dust', color: '#eab308', desc: 'Excavation, demolition & cement work' },
+  construction: { icon: '🏗️', label: 'Construction Dust', color: '#b45309', desc: 'Excavation, demolition & cement work' },
   biomass:      { icon: '🔥', label: 'Biomass Burning', color: '#a855f7', desc: 'Crop stubble, waste & cooking fuel fires' },
   mixed:        { icon: '🌫️', label: 'Mixed Sources', color: '#6366f1', desc: 'Multiple overlapping pollution drivers' },
   unknown:      { icon: '❓', label: 'Unknown', color: '#78716c', desc: 'Insufficient data for classification' },
@@ -138,7 +138,7 @@ function ForecastCard({ data, loading, horizon, setHorizon }) {
   const getBarColor = (aqi) => {
     if (aqi <= 50) return '#22c55e';
     if (aqi <= 100) return '#84cc16';
-    if (aqi <= 200) return '#eab308';
+    if (aqi <= 200) return '#b45309';
     if (aqi <= 300) return '#f97316';
     return '#ef4444';
   };
@@ -194,7 +194,7 @@ function ForecastCard({ data, loading, horizon, setHorizon }) {
           <XAxis dataKey="time" tick={{ fill: '#a8a29e', fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
           <YAxis tick={{ fill: '#a8a29e', fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
           <Tooltip content={<CustomTooltip />} />
-          <ReferenceLine y={100} strokeDasharray="4 4" stroke="#eab308" label={{ value: 'Moderate', position: 'right', fontSize: 10, fill: '#eab308' }} />
+          <ReferenceLine y={100} strokeDasharray="4 4" stroke="#b45309" label={{ value: 'Moderate', position: 'right', fontSize: 10, fill: '#b45309' }} />
           <ReferenceLine y={200} strokeDasharray="4 4" stroke="#f97316" label={{ value: 'Poor', position: 'right', fontSize: 10, fill: '#f97316' }} />
           <Area
             type="monotone" dataKey="aqi" name="Predicted AQI"
@@ -268,13 +268,13 @@ function AnomalyCard({ data, loading }) {
             transition={{ duration: 0.8 }}
             style={{
               height: '100%', borderRadius: 4,
-              background: score > 0.6 ? '#ef4444' : score > 0.4 ? '#eab308' : '#22c55e',
+              background: score > 0.6 ? '#ef4444' : score > 0.4 ? '#b45309' : '#22c55e',
             }}
           />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
           <span style={{ fontSize: '0.65rem', color: '#22c55e' }}>Normal</span>
-          <span style={{ fontSize: '0.65rem', color: '#eab308' }}>Suspicious</span>
+          <span style={{ fontSize: '0.65rem', color: '#b45309' }}>Suspicious</span>
           <span style={{ fontSize: '0.65rem', color: '#ef4444' }}>Anomalous</span>
         </div>
       </div>

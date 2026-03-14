@@ -175,7 +175,7 @@ function SystemHealth({ liveData }) {
               { label: 'PM 2.5',      val: liveData.pm25,        unit: 'µg/m³',  color: '#f97316' },
               { label: 'CO',          val: liveData.co,          unit: 'mg/m³',  color: '#8b5cf6' },
               { label: 'NO₂',         val: liveData.no2,         unit: 'ppm',    color: '#0ea5e9' },
-              { label: 'TVOC',        val: liveData.tvoc,        unit: 'ppm',    color: '#eab308' },
+              { label: 'TVOC',        val: liveData.tvoc,        unit: 'ppm',    color: '#b45309' },
               { label: 'Temperature', val: liveData.temperature, unit: '°C',     color: '#ef4444' },
               { label: 'Humidity',    val: liveData.humidity,    unit: '%',      color: '#38bdf8' },
             ].map(({ label, val, unit, color }) => (
@@ -224,7 +224,7 @@ function PolicyPanel({ liveAqi }) {
     borderRadius: 14, border: '1px solid rgba(16,185,129,0.1)',
   };
 
-  const aqiColor = aqi <= 50 ? '#22c55e' : aqi <= 100 ? '#84cc16' : aqi <= 200 ? '#eab308' : aqi <= 300 ? '#f97316' : '#ef4444';
+  const aqiColor = aqi <= 50 ? '#22c55e' : aqi <= 100 ? '#84cc16' : aqi <= 200 ? '#b45309' : aqi <= 300 ? '#f97316' : '#ef4444';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -258,7 +258,7 @@ function PolicyPanel({ liveAqi }) {
         <input type="range" min="0" max="500" step="10" value={selectedAqi}
           onChange={e => setSelectedAqi(parseInt(e.target.value))}
           style={{ width: '100%', height: 6, borderRadius: 4, appearance: 'none', outline: 'none', cursor: 'pointer',
-            background: 'linear-gradient(90deg, #22c55e, #a3e635, #facc15, #f97316, #ef4444, #991b1b)' }} />
+            background: 'linear-gradient(90deg, #22c55e, #a3e635, #b45309, #f97316, #ef4444, #991b1b)' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#9ca3af', marginTop: 4 }}>
           {['Good','Satisfactory','Moderate','Poor','Very Poor','Severe'].map(l => <span key={l}>{l}</span>)}
         </div>
@@ -391,7 +391,7 @@ function ActivityLog({ liveData }) {
 
   const aqiColor = (aqi) => {
     if (aqi <= 50) return '#22c55e'; if (aqi <= 100) return '#84cc16';
-    if (aqi <= 200) return '#eab308'; if (aqi <= 300) return '#f97316';
+    if (aqi <= 200) return '#b45309'; if (aqi <= 300) return '#f97316';
     return '#ef4444';
   };
 

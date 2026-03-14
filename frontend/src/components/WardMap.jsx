@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import wardGeoJson from '../data/wards.json';
+import WindOverlay from './WindOverlay';
 
 /* ── Force map resize when container size changes ──── */
 function MapResizer() {
@@ -20,7 +21,7 @@ function MapResizer() {
 function getAqiColor(aqi) {
   if (aqi <= 50)  return '#22c55e';
   if (aqi <= 100) return '#84cc16';
-  if (aqi <= 200) return '#eab308';
+  if (aqi <= 200) return '#b45309';
   if (aqi <= 300) return '#f97316';
   if (aqi <= 400) return '#ef4444';
   return '#991b1b';
@@ -31,6 +32,17 @@ function getAqiOpacity(aqi) {
   if (aqi <= 200) return 0.5;
   if (aqi <= 300) return 0.6;
   return 0.7;
+}
+
+function getSourceColor(source) {
+  const key = (source || '').toLowerCase();
+  if (key === 'vehicle' || key === 'vehicular') return '#0ea5e9';
+  if (key === 'industrial') return '#8b5cf6';
+  if (key === 'biomass') return '#f97316';
+  if (key === 'construction') return '#b45309';
+  if (key === 'dust') return '#a16207';
+  if (key === 'regional' || key === 'mixed') return '#64748b';
+  return '#94a3b8';
 }
 
 /* ── Fly to ward on selection ──────────── */
@@ -47,7 +59,7 @@ function MapLegend({ viewMode }) {
   const items = [
     { label: 'Good (0-50)', color: '#22c55e' },
     { label: 'Satisfactory (51-100)', color: '#84cc16' },
-    { label: 'Moderate (101-200)', color: '#eab308' },
+    { label: 'Moderate (101-200)', color: '#b45309' },
     { label: 'Poor (201-300)', color: '#f97316' },
     { label: 'Very Poor (301-400)', color: '#ef4444' },
     { label: 'Severe (401+)', color: '#991b1b' },
@@ -82,7 +94,15 @@ const wardOnlyGeoJson = {
   features: wardGeoJson.features.filter(f => f.properties.type === 'ward'),
 };
 
-export default function WardMap({ wardData = [], selectedWard, onSelectWard, viewMode = 'wards' }) {
+export default function WardMap({
+  wardData = [],
+  selectedWard,
+  onSelectWard,
+  viewMode = 'wards',
+  colorMode = 'aqi',
+  windField = [],
+  trajectory = null,
+}) {
   const [flyCenter, setFlyCenter] = useState(null);
 
   // Build lookup: ward_id -> live data
@@ -137,8 +157,10 @@ export default function WardMap({ wardData = [], selectedWard, onSelectWard, vie
     const wd = wardLookup[feature.properties.ward_id];
     const aqi = wd?.aqi || 0;
     const isSelected = feature.properties.ward_id === selectedWard;
+    const src = wd?.source_dominant || wd?.source_detected;
+    const fill = colorMode === 'source' ? getSourceColor(src) : getAqiColor(aqi);
     return {
-      fillColor: getAqiColor(aqi),
+      fillColor: fill,
       fillOpacity: isSelected ? 0.8 : getAqiOpacity(aqi),
       color: isSelected ? '#064e3b' : 'rgba(255,255,255,0.65)',
       weight: isSelected ? 2.5 : 0.8,
@@ -257,6 +279,26 @@ export default function WardMap({ wardData = [], selectedWard, onSelectWard, vie
             data={wardOnlyGeoJson}
             style={getWardStyle}
             onEachFeature={onEachWard}
+          />
+        )}
+
+        <WindOverlay
+          field={windField}
+          wardData={wardData}
+          visible={colorMode === 'wind' || colorMode === 'flow'}
+          particleCount={colorMode === 'flow' ? 1000 : 800}
+        />
+
+        {/* Backward trajectory line */}
+        {trajectory && trajectory.length > 1 && (
+          <Polyline
+            positions={trajectory.map(p => [p.lat, p.lon || p.lng])}
+            pathOptions={{
+              color: '#8b5cf6',
+              weight: 2.5,
+              dashArray: '8,6',
+              opacity: 0.8,
+            }}
           />
         )}
 

@@ -37,7 +37,7 @@
   /* AQI Colors */
   --aqi-good: #22c55e;
   --aqi-satisfactory: #a3e635;
-  --aqi-moderate: #facc15;
+  --aqi-moderate: #b45309;
   --aqi-poor: #f97316;
   --aqi-verypoor: #ef4444;
   --aqi-severe: #991b1b;
@@ -447,7 +447,7 @@ body::after {
 .metric-card[data-type="pm25"]::before { background: linear-gradient(90deg, #f97316, #ef4444); }
 .metric-card[data-type="co"]::before { background: linear-gradient(90deg, #8b5cf6, #6366f1); }
 .metric-card[data-type="no2"]::before { background: linear-gradient(90deg, #0ea5e9, #06b6d4); }
-.metric-card[data-type="tvoc"]::before { background: linear-gradient(90deg, #f59e0b, #eab308); }
+.metric-card[data-type="tvoc"]::before { background: linear-gradient(90deg, #f59e0b, #b45309); }
 .metric-card[data-type="temp"]::before { background: linear-gradient(90deg, #ef4444, #f97316); }
 .metric-card[data-type="humidity"]::before { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
 

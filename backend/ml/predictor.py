@@ -5,6 +5,7 @@ import logging
 import joblib
 import numpy as np
 from datetime import datetime, timezone, timedelta
+from ml.attribution import compute_bayesian_attribution
 
 logger = logging.getLogger("aqms.ml")
 
@@ -134,6 +135,45 @@ def detect_source(pm25: float, co: float, no2: float, tvoc: float,
     }
 
 
+def detect_source_bayesian(
+    ward_id: str,
+    readings: dict,
+    wind_context: dict = None,
+    zone_profile: str = "mixed",
+) -> dict:
+    """Enhanced source attribution that returns full source distribution.
+
+    Keeps compatibility with the existing source naming expected by UI while
+    exposing richer attribution scores.
+    """
+    attribution = compute_bayesian_attribution(
+        ward_id=ward_id,
+        reading=readings,
+        zone_profile=zone_profile,
+        wind_context=wind_context,
+    )
+
+    scores = attribution.get("scores", {})
+    # Map attribution keys to existing AQMS source labels
+    probabilities = {
+        "vehicle": round(float(scores.get("vehicular", 0.0)), 3),
+        "industrial": round(float(scores.get("industrial", 0.0)), 3),
+        "biomass": round(float(scores.get("biomass", 0.0)), 3),
+        "construction": round(float(scores.get("construction", 0.0)), 3),
+        "mixed": round(float(scores.get("regional", 0.0) + 0.5 * scores.get("dust", 0.0)), 3),
+    }
+
+    src = max(probabilities, key=probabilities.get)
+    return {
+        "source": src,
+        "confidence": round(float(probabilities[src]), 3),
+        "probabilities": probabilities,
+        "attribution_scores": scores,
+        "dominant_source": attribution.get("dominant_source", src),
+        "attribution_confidence": attribution.get("confidence", "medium"),
+    }
+
+
 def forecast_aqi(current_reading: dict, horizon_hours: int = 24) -> list:
     """Forecast AQI for the next N hours using XGBoost."""
     now = datetime.now(timezone.utc)
@@ -164,7 +204,7 @@ def forecast_aqi(current_reading: dict, horizon_hours: int = 24) -> list:
 
             if pred_aqi <= 50: cat, color = "Good", "#22c55e"
             elif pred_aqi <= 100: cat, color = "Satisfactory", "#84cc16"
-            elif pred_aqi <= 200: cat, color = "Moderate", "#eab308"
+            elif pred_aqi <= 200: cat, color = "Moderate", "#b45309"
             elif pred_aqi <= 300: cat, color = "Poor", "#f97316"
             elif pred_aqi <= 400: cat, color = "Very Poor", "#ef4444"
             else: cat, color = "Severe", "#991b1b"
@@ -221,7 +261,7 @@ def forecast_aqi(current_reading: dict, horizon_hours: int = 24) -> list:
         elif pred_aqi <= 100:
             cat, color = "Satisfactory", "#84cc16"
         elif pred_aqi <= 200:
-            cat, color = "Moderate", "#eab308"
+            cat, color = "Moderate", "#b45309"
         elif pred_aqi <= 300:
             cat, color = "Poor", "#f97316"
         elif pred_aqi <= 400:

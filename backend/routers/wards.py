@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from fastapi import APIRouter
 
 from utils.aqi_calc import calculate_aqi, get_aqi_category
+from services.wind_service import interpolate_wind, get_upwind_wards
+from ml.attribution import compute_bayesian_attribution, aggregate_zone_attribution
 
 router = APIRouter(prefix="/api", tags=["wards"])
 
@@ -149,12 +151,12 @@ for zone_name, zdef in ZONE_DEFS.items():
 
 # Pollution profiles — Delhi-realistic high AQI (typical winter readings 150-350+)
 PROFILES = {
-    "clean":        {"pm25_base": 90,  "co_base": 2.0, "no2_base": 0.06, "tvoc_base": 0.30, "source": None},
-    "vehicle":      {"pm25_base": 160, "co_base": 4.5, "no2_base": 0.14, "tvoc_base": 0.50, "source": "vehicle"},
-    "industrial":   {"pm25_base": 220, "co_base": 6.0, "no2_base": 0.22, "tvoc_base": 1.00, "source": "industrial"},
-    "construction": {"pm25_base": 250, "co_base": 3.5, "no2_base": 0.10, "tvoc_base": 1.40, "source": "construction"},
-    "biomass":      {"pm25_base": 200, "co_base": 7.5, "no2_base": 0.12, "tvoc_base": 1.20, "source": "biomass"},
-    "mixed":        {"pm25_base": 140, "co_base": 3.8, "no2_base": 0.10, "tvoc_base": 0.60, "source": "vehicle"},
+    "clean":        {"pm25_base": 90,  "co_base": 2.0, "no2_base": 0.06, "tvoc_base": 0.30, "so2_base": 0.01, "source": None},
+    "vehicle":      {"pm25_base": 160, "co_base": 4.5, "no2_base": 0.14, "tvoc_base": 0.50, "so2_base": 0.02, "source": "vehicle"},
+    "industrial":   {"pm25_base": 220, "co_base": 6.0, "no2_base": 0.22, "tvoc_base": 1.00, "so2_base": 0.08, "source": "industrial"},
+    "construction": {"pm25_base": 250, "co_base": 3.5, "no2_base": 0.10, "tvoc_base": 1.40, "so2_base": 0.02, "source": "construction"},
+    "biomass":      {"pm25_base": 200, "co_base": 7.5, "no2_base": 0.12, "tvoc_base": 1.20, "so2_base": 0.03, "source": "biomass"},
+    "mixed":        {"pm25_base": 140, "co_base": 3.8, "no2_base": 0.10, "tvoc_base": 0.60, "so2_base": 0.02, "source": "vehicle"},
 }
 
 
@@ -178,8 +180,10 @@ def _generate_ward_reading(ward: dict) -> dict:
     co = max(0.1, prof["co_base"] * traffic_factor * ward_var + noise(0.2))
     no2 = max(0.005, prof["no2_base"] * traffic_factor * ward_var + noise(0.008))
     tvoc = max(0.01, prof["tvoc_base"] * traffic_factor * ward_var + noise(0.05))
+    so2 = max(0.001, prof["so2_base"] * traffic_factor * ward_var + noise(0.003))
     temperature = 28.0 + 5 * math.sin((hour - 14) * math.pi / 12) + noise(1.2)
     humidity = 55.0 - 15 * math.sin((hour - 14) * math.pi / 12) + noise(2.5)
+    wind = interpolate_wind(ward["lat"], ward["lng"])
 
     aqi = calculate_aqi(pm25, co, no2)
     cat = get_aqi_category(aqi)
@@ -198,6 +202,9 @@ def _generate_ward_reading(ward: dict) -> dict:
         "co": round(co, 2),
         "no2": round(no2, 3),
         "tvoc": round(tvoc, 2),
+        "so2": round(so2, 3),
+        "wind_speed": round(float(wind.get("wind_speed", 0.0)), 2),
+        "wind_direction": round(float(wind.get("wind_direction", 0.0)), 1),
         "aqi": aqi,
         "aqi_category": cat["category"],
         "aqi_color": cat["color"],
@@ -206,13 +213,80 @@ def _generate_ward_reading(ward: dict) -> dict:
     }
 
 
+def _to_legacy_source(attr_src: str) -> str:
+    if attr_src == "vehicular":
+        return "vehicle"
+    if attr_src in {"industrial", "biomass", "construction"}:
+        return attr_src
+    return "mixed"
+
+
 @router.get("/wards")
 async def get_all_wards():
     """Return current AQI data for all zones and wards."""
     readings = [_generate_ward_reading(w) for w in WARD_META]
+    ward_readings = [r for r in readings if r.get("feature_type") == "ward"]
+    ward_profile_map = {w["ward_id"]: w.get("profile", "mixed") for w in WARD_META}
+
+    # Add wind-aware upwind context + attribution scores for each ward
+    for r in ward_readings:
+        upwind = get_upwind_wards(r["lat"], r["lng"], ward_readings, radius_km=7.0)
+        upwind_top = []
+        for u in upwind[:3]:
+            s = next((w for w in ward_readings if w["ward_id"] == u["ward_id"]), None)
+            if not s:
+                continue
+            angle_penalty = max(0.2, 1.0 - (float(u.get("angle_from_wind", 0.0)) / 90.0))
+            upwind_top.append({
+                "ward_id": u["ward_id"],
+                "name": u.get("name", ""),
+                "source_detected": s.get("source_detected"),
+                "aqi": s.get("aqi"),
+                "score": round((float(s.get("aqi", 0)) / 500.0) * angle_penalty, 3),
+                "distance_km": u.get("distance_km"),
+            })
+        upwind_top.sort(key=lambda x: x["score"], reverse=True)
+
+        attribution = compute_bayesian_attribution(
+            ward_id=r["ward_id"],
+            reading=r,
+            zone_profile=ward_profile_map.get(r["ward_id"], "mixed"),
+            wind_context={"upwind_sources": upwind_top},
+        )
+
+        r["attribution_scores"] = attribution.get("scores", {})
+        r["attribution_confidence"] = attribution.get("confidence", "medium")
+        r["source_dominant"] = _to_legacy_source(attribution.get("dominant_source", "regional"))
+        r["wind_exposure"] = {
+            "wind_speed": r.get("wind_speed"),
+            "wind_direction": r.get("wind_direction"),
+            "upwind_sources": upwind_top,
+        }
+
+    # Zone aggregation from ward attributions
+    zone_stats = {}
+    for z in {w.get("zone") for w in ward_readings}:
+        z_wards = [w for w in ward_readings if w.get("zone") == z]
+        agg = aggregate_zone_attribution(
+            [{"ward_id": w["ward_id"], "scores": w.get("attribution_scores", {})} for w in z_wards],
+            ward_aqis={w["ward_id"]: w["aqi"] for w in z_wards},
+        )
+        zone_stats[z] = {
+            "dominant_source": _to_legacy_source(agg.get("dominant_source", "regional")),
+            "scores": agg.get("scores", {}),
+            "confidence_score": agg.get("confidence_score", 0.0),
+        }
+
+    for r in readings:
+        if r.get("feature_type") == "zone":
+            z = zone_stats.get(r.get("zone"), {})
+            r["zone_dominant_source"] = z.get("dominant_source")
+            r["attribution_scores"] = z.get("scores", {})
+
     return {
         "count": len(readings),
         "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "zone_source_summary": zone_stats,
         "wards": readings,
     }
 
@@ -223,4 +297,34 @@ async def get_ward(ward_id: str):
     ward = next((w for w in WARD_META if w["ward_id"] == ward_id), None)
     if not ward:
         return {"error": "Ward not found"}
-    return _generate_ward_reading(ward)
+    reading = _generate_ward_reading(ward)
+    if ward.get("feature_type") == "ward":
+        ward_readings = [_generate_ward_reading(w) for w in WARD_META if w.get("feature_type") == "ward"]
+        upwind = get_upwind_wards(reading["lat"], reading["lng"], ward_readings, radius_km=7.0)
+        upwind_top = []
+        for u in upwind[:3]:
+            s = next((w for w in ward_readings if w["ward_id"] == u["ward_id"]), None)
+            if not s:
+                continue
+            upwind_top.append({
+                "ward_id": u["ward_id"],
+                "name": u.get("name", ""),
+                "source_detected": s.get("source_detected"),
+                "aqi": s.get("aqi"),
+                "distance_km": u.get("distance_km"),
+            })
+        attribution = compute_bayesian_attribution(
+            ward_id=reading["ward_id"],
+            reading=reading,
+            zone_profile=ward.get("profile", "mixed"),
+            wind_context={"upwind_sources": upwind_top},
+        )
+        reading["attribution_scores"] = attribution.get("scores", {})
+        reading["attribution_confidence"] = attribution.get("confidence", "medium")
+        reading["source_dominant"] = _to_legacy_source(attribution.get("dominant_source", "regional"))
+        reading["wind_exposure"] = {
+            "wind_speed": reading.get("wind_speed"),
+            "wind_direction": reading.get("wind_direction"),
+            "upwind_sources": upwind_top,
+        }
+    return reading

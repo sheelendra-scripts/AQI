@@ -31,7 +31,7 @@ CO_BREAKPOINTS = [
 AQI_CATEGORIES = [
     (0, 50, "Good", "#55a049"),
     (51, 100, "Satisfactory", "#a3c853"),
-    (101, 200, "Moderate", "#fff44f"),
+    (101, 200, "Moderate", "#b45309"),
     (201, 300, "Poor", "#f29c33"),
     (301, 400, "Very Poor", "#e93f33"),
     (401, 500, "Severe", "#af2d24"),
