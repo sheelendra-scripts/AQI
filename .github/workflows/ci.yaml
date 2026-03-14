@@ -23,13 +23,28 @@ jobs:
         with:
           context: "{{defaultContext}}:frontend"
           push: true
-          tags: "rajatrulaniya/hackdata-frontend:${{ github.run_number }}"
+          tags: |
+            rajatrulaniya/hackdata-frontend:${{ github.run_number }}
+            rajatrulaniya/hackdata-frontend:latest
 
       - name: Build and Push Backend image
         uses: docker/build-push-action@v6
         with:
           context: "{{defaultContext}}:backend"
           push: true
-          tags: "rajatrulaniya/hackdata-backend:${{ github.run_number }}"
+          tags: |
+            rajatrulaniya/hackdata-backend:${{ github.run_number }}
+            rajatrulaniya/hackdata-backend:latest
 
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            git clone https://github.com/${{ github.repository }} || echo "NOTHING TO CLONE..."
+            cd AQMS
+            docker compose pull
+            docker compose up -d
 
