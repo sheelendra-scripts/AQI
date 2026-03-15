@@ -271,3 +271,49 @@ def estimate_transport_contribution(
         "stability_class": stability,
         "plume_concentration": round(concentration, 4),
     }
+
+
+def estimate_source_coordinates(
+    lat: float,
+    lon: float,
+    wind_direction: float,
+    wind_speed: float,
+    transport_hours: float = 1.0,
+) -> dict:
+    """Estimate probable upwind source coordinates from a receptor location.
+
+    Replicates the hackdata pipeline logic: given a sensor reading location and
+    the current wind vector, project backwards along the wind to estimate where
+    the pollution came from.
+
+    Args:
+        lat:              Receptor latitude (sensor/ward location)
+        lon:              Receptor longitude
+        wind_direction:   Wind direction in degrees (direction FROM which wind blows)
+        wind_speed:       Wind speed in m/s
+        transport_hours:  Assumed transport time in hours (default 1 h)
+
+    Returns:
+        dict with source_lat, source_lon, travel_distance_km
+    """
+    # Travel distance = speed (m/s) × time (s) → km
+    travel_distance_km = (wind_speed * transport_hours * 3600) / 1000.0
+
+    # Wind blows FROM wind_direction toward (wind_direction + 180).
+    # To find the source, step backwards — i.e. move in the direction the wind is coming FROM.
+    rad = math.radians(wind_direction)
+
+    dlat = (travel_distance_km * math.cos(rad)) / 111.0
+    dlon = (travel_distance_km * math.sin(rad)) / (111.0 * math.cos(math.radians(lat)))
+
+    source_lat = lat + dlat
+    source_lon = lon + dlon
+
+    return {
+        "source_lat": round(source_lat, 6),
+        "source_lon": round(source_lon, 6),
+        "travel_distance_km": round(travel_distance_km, 2),
+        "transport_hours": transport_hours,
+        "wind_direction": round(wind_direction, 1),
+        "wind_speed": round(wind_speed, 2),
+    }

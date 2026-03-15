@@ -79,6 +79,12 @@ export const fetchMLForecast = (horizon = 24) => api.get(`/api/ml/forecast?horiz
 export const fetchMLAnomaly = () => api.get('/api/ml/anomaly').then(r => r.data);
 export const fetchMLSummary = () => api.get('/api/ml/summary').then(r => r.data);
 
+// ─── Industrial Source Attribution (hackdata pipeline) ──
+export const fetchIndustrialSource = (wardId = 'ward_01', transportHours = 1, topSources = 3) =>
+  api.get(`/api/plume/industrial-source/${wardId}`, {
+    params: { transport_hours: transportHours, top_sources: topSources },
+  }).then(r => r.data);
+
 // ─── Direct ThingSpeak fallback (works without backend) ─
 function safeFloat(val) { return val ? parseFloat(val) || 0 : 0; }
 function safeInt(val) { return val ? parseInt(val, 10) || 0 : 0; }
