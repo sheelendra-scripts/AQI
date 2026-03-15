@@ -1,7 +1,7 @@
 # AQMS - Air Quality Monitoring System
 
 > **IoT-Enabled Real-Time Air Quality Intelligence Platform**
-> Ward-Level Monitoring | ML Source Detection | Smart Alerts | Policy Recommendations
+> Ward-Level Monitoring | ML Source Detection | Wind-Aware Attribution | Smart Alerts | Policy Recommendations
 
 **Team MechaMinds**
 
@@ -12,9 +12,9 @@
 
 ## Overview
 
-AQMS is a full-stack air quality monitoring platform covering all **250 municipal wards** across **12 MCD zones** of Delhi. It combines IoT sensor hardware (ESP32), cloud data processing (FastAPI), three ML models, and an interactive React dashboard to provide real-time pollution intelligence.
+AQMS is a full-stack air quality monitoring platform covering all **250 municipal wards** across **12 MCD zones** of Delhi. It combines IoT sensor hardware (ESP32), cloud data processing (FastAPI), ML models, wind-aware atmospheric context, and an interactive React dashboard to provide real-time pollution intelligence.
 
-**Key Metrics:** AQI range 71-362 across wards | Mean AQI: 262 | 7 configurable alert rules | 72-hour AQI forecast
+**Key Metrics:** 250 wards | 12 zones | 7 configurable alert rules | 72-hour AQI forecast | Wind + plume + source attribution APIs
 
 ---
 
@@ -29,15 +29,19 @@ ThingSpeak Cloud (Channel 2697383)
        v
 FastAPI Backend (Python)
   - ThingSpeak Data Fetcher (live + demo mode)
-  - ML Pipeline (3 models + rule-based fallback)
+  - ML Pipeline (RF source, XGBoost forecast, IF anomaly)
+  - Wind Service (station cache + interpolation)
+  - Atmospheric Layer (trajectory + flow chain)
+  - Bayesian-Style Source Attribution
   - Alert Engine (7 rules, 5-min debounce)
   - SQLite Storage (async via SQLAlchemy)
   - WebSocket Broadcast
        | REST + WebSocket
        v
 React Frontend (Vite)
-  - 8 Interactive Pages
+  - 9 Interactive Pages
   - Leaflet Ward Map (250 wards)
+  - Wind Analysis Page
   - Recharts Visualization
   - Client-side ML Fallback
 ```
@@ -53,6 +57,9 @@ React Frontend (Vite)
 | **ML Source Detection** | Random Forest classifier identifying vehicle, industrial, construction, biomass, mixed sources |
 | **AQI Forecasting** | XGBoost model predicting AQI 1-72 hours ahead with diurnal patterns |
 | **Anomaly Detection** | Isolation Forest flagging unusual sensor patterns |
+| **Wind Intelligence** | Wind station cache, interpolated wind field, seasonal pattern fallback |
+| **Plume + Trajectory APIs** | Backward trajectory, upwind lookup, and zone flow chain endpoints |
+| **Source Attribution (Bayesian-style)** | Probabilistic source mix using pollutant fingerprints + temporal + wind context |
 | **Smart Alerts** | 7 configurable rules with severity levels and 5-min debounce |
 | **Health Advisory** | Population-specific guidance for general public and vulnerable groups |
 | **Admin Policy Panel** | Source-specific intervention recommendations for municipal officials |
@@ -81,8 +88,6 @@ React Frontend (Vite)
 AQMS/
   backend/
     main.py                  # FastAPI app, CORS, startup, polling loop
-    database.py              # SQLAlchemy async engine
-    models.py                # ORM models (SensorReading, Ward)
     routers/
       live.py                # /api/live, /api/advisory
       history.py             # /api/history
@@ -90,17 +95,24 @@ AQMS/
       ml.py                  # /api/ml/* (source, forecast, anomaly)
       alerts.py              # /api/alerts/* (rules, stats)
       policy.py              # /api/policy
+      wind.py                # /api/wind/*
+      plume.py               # /api/plume/*
+      attribution.py         # /api/attribution/*
     services/
+      database.py            # SQLAlchemy async engine + ORM models
       thingspeak_fetcher.py  # ThingSpeak polling + demo mode
+      wind_service.py        # Wind station fetch/cache + interpolation
+      atmospheric.py         # Trajectory + flow-chain utilities
     ml/
       predictor.py           # ML inference + rule-based fallback
+      attribution.py         # Bayesian-style attribution engine
       train_models.py        # Model training script
       models/                # Serialized .pkl files
     requirements.txt
   frontend/
     src/
-      pages/                 # 8 pages (Dashboard, Map, Analytics, ML, Alerts, Advisory, Admin, Landing)
-      components/            # 7 components (Sidebar, AQIGauge, MetricsGrid, WardMap, etc.)
+      pages/                 # 9 pages (+ WindPage)
+      components/            # Includes WardMap, WindOverlay, AttributionPanel
       services/api.js        # API client + ThingSpeak fallback + client-side ML
       hooks/useData.js       # WebSocket + polling hooks
       data/wards.json        # 258-feature GeoJSON (12 zones + 246 wards)
@@ -165,6 +177,18 @@ AQMS/
 | GET | `/api/alerts` | Alert history |
 | GET | `/api/alerts/rules` | Alert rules |
 | GET | `/api/policy?source=vehicle` | Policy recommendations |
+| GET | `/api/wind/current` | Station wind snapshot |
+| GET | `/api/wind/field?grid_size=12` | Interpolated wind vector field |
+| GET | `/api/wind/history?hours=24` | Wind history snapshots |
+| GET | `/api/wind/at?lat=...&lon=...` | Wind at a specific point |
+| GET | `/api/wind/upwind/{ward_id}` | Upwind wards for target ward |
+| GET | `/api/wind/seasonal` | Seasonal wind profile metadata |
+| GET | `/api/plume/trajectory/{ward_id}?hours=3` | Backward trajectory from ward |
+| GET | `/api/plume/upwind/{ward_id}` | Upwind wards via plume context |
+| GET | `/api/plume/flow-chain/{zone_id}` | Wind flow order within zone |
+| GET | `/api/attribution/ward/{ward_id}` | Full ward source attribution |
+| GET | `/api/attribution/zone/{zone_id}` | Zone-level source attribution |
+| GET | `/api/attribution/city` | City-wide source contribution summary |
 | GET | `/api/health` | Backend health check |
 | WS | `/ws/live` | Real-time WebSocket feed |
 
@@ -191,6 +215,9 @@ npm run dev
 # Backend (.env)
 DEMO_MODE=auto          # auto | true | false
 DATABASE_URL=sqlite+aiosqlite:///./aqms.db
+THINGSPEAK_CHANNEL_ID=2697383
+THINGSPEAK_READ_API_KEY=your_thingspeak_read_key
+OWM_API_KEY=            # optional: real weather API (falls back to simulated seasonal wind if empty)
 
 # Frontend (Vercel or .env)
 VITE_API_URL=https://your-backend.onrender.com
@@ -205,6 +232,13 @@ VITE_API_URL=https://your-backend.onrender.com
 | Frontend | Vercel | https://aqms-livid.vercel.app |
 | Backend | Render | https://aqms-backend-ue5x.onrender.com |
 | Source | GitHub | github.com/sheelendra-scripts/AQMS |
+
+### Render Notes
+
+- Keep `DEMO_MODE=auto` for resilient fallback when sensor feed is unavailable.
+- Set `THINGSPEAK_*` vars in Render dashboard (do not rely only on hardcoded defaults).
+- Set `OWM_API_KEY` only if you want real wind station data; otherwise simulated seasonal wind is used.
+- If startup fails due to SQLAlchemy async greenlet dependency, ensure `greenlet` is installed in the build environment.
 
 ---
 
