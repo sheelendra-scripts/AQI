@@ -227,18 +227,46 @@ VITE_API_URL=https://your-backend.onrender.com
 
 ## Deployment
 
-| Component | Platform | Config |
-|---|---|---|
-| Frontend | Vercel | https://aqms-livid.vercel.app |
-| Backend | Render | https://aqms-backend-ue5x.onrender.com |
-| Source | GitHub | github.com/sheelendra-scripts/AQMS |
+### Current Production Setup
 
-### Render Notes
+- **Live URL:** https://hackdata.rajatrulaniya.com
+- **Server:** AWS EC2 (`t3.small`)
+- **Container Orchestration:** `docker-compose` for frontend + backend services
 
-- Keep `DEMO_MODE=auto` for resilient fallback when sensor feed is unavailable.
-- Set `THINGSPEAK_*` vars in Render dashboard (do not rely only on hardcoded defaults).
-- Set `OWM_API_KEY` only if you want real wind station data; otherwise simulated seasonal wind is used.
-- If startup fails due to SQLAlchemy async greenlet dependency, ensure `greenlet` is installed in the build environment.
+### CI/CD Pipeline (GitHub Actions)
+
+- Pipeline file: `.github/workflows/cicd.yaml`
+- Trigger: every push to `main`
+- Workflow actions:
+  - Builds frontend and backend Docker images
+  - Pushes images to Docker Hub (`latest` + run-number tags)
+  - Connects to EC2 over SSH and runs `docker compose pull` + `docker compose up -d`
+- Outcome: deployments are automated on every push with no manual server steps.
+
+### Reverse Proxy and TLS
+
+- Root `nginx.conf` acts as reverse proxy in front of containers.
+- HTTP (`:80`) traffic is redirected to HTTPS.
+- HTTPS (`:443`) is terminated at Nginx with Let's Encrypt SSL/TLS certificates.
+- Request routing:
+  - `/` -> frontend container (`127.0.0.1:3000`)
+  - `/api/` -> backend container (`127.0.0.1:8000`)
+  - `/ws/` -> backend WebSocket endpoint
+
+### Frontend Image Optimization
+
+- `frontend/Dockerfile` uses a multi-stage build:
+  - Stage 1 (`node:20-alpine`) compiles the Vite app
+  - Stage 2 (`nginx:stable-alpine`) serves only built static assets
+- Benefit: smaller production image size and faster deployment/pull times.
+
+### Dynamic Configuration Handling
+
+- `frontend/entrypoint.sh` injects runtime config into `/usr/share/nginx/html/config.js` using:
+  - `BACKEND_HOST`
+  - `BACKEND_PORT`
+- This avoids React build-time API URL hardcoding and keeps the frontend image environment-agnostic.
+- In `docker-compose.yml`, these variables are set at runtime, so the same image can be reused across environments without rebuilding.
 
 ---
 
