@@ -2,7 +2,7 @@ name: HACKDATA CICD Pipeline
 
 on:
   push:
-    branches: [ rajat ]
+    branches: [ main ]
 
 jobs:
   BUILD_IMAGES:
