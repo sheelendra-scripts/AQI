@@ -39,8 +39,9 @@ FastAPI Backend (Python)
        | REST + WebSocket
        v
 React Frontend (Vite)
-  - 9 Interactive Pages
+  - 10 Interactive Pages
   - Leaflet Ward Map (250 wards)
+  - Plume Map (canvas particle simulation)
   - Wind Analysis Page
   - Recharts Visualization
   - Client-side ML Fallback
@@ -63,6 +64,8 @@ React Frontend (Vite)
 | **Smart Alerts** | 7 configurable rules with severity levels and 5-min debounce |
 | **Health Advisory** | Population-specific guidance for general public and vulnerable groups |
 | **Admin Policy Panel** | Source-specific intervention recommendations for municipal officials |
+| **Industrial Source Card** | Z-score spike detection, wind-derived source coordinates, and ranked Zenodo emission grid matches surfaced on ML Insights page |
+| **Plume Map** | Interactive Leaflet map with real-time canvas particle simulation showing plume transport from estimated industrial source to selected ward |
 
 ---
 
@@ -102,7 +105,11 @@ AQMS/
       database.py            # SQLAlchemy async engine + ORM models
       thingspeak_fetcher.py  # ThingSpeak polling + demo mode
       wind_service.py        # Wind station fetch/cache + interpolation
-      atmospheric.py         # Trajectory + flow-chain utilities
+      atmospheric.py         # Trajectory + flow-chain + source-coord utilities
+      industrial_sources.py  # Zenodo emission grid loader + Haversine nearest-source
+      spike_detector.py      # Z-score spike classification (normal→extreme)
+    data/
+      industrial_sources.csv # Zenodo Delhi Domain 2020 (807 grid cells)
     ml/
       predictor.py           # ML inference + rule-based fallback
       attribution.py         # Bayesian-style attribution engine
@@ -111,7 +118,8 @@ AQMS/
     requirements.txt
   frontend/
     src/
-      pages/                 # 9 pages (+ WindPage)
+      pages/                 # 10 pages (Dashboard, Map, Analytics, Advisory, Alerts,
+                             #           Admin, ML Insights, Wind, Plume Map, Landing)
       components/            # Includes WardMap, WindOverlay, AttributionPanel
       services/api.js        # API client + ThingSpeak fallback + client-side ML
       hooks/useData.js       # WebSocket + polling hooks
@@ -186,6 +194,7 @@ AQMS/
 | GET | `/api/plume/trajectory/{ward_id}?hours=3` | Backward trajectory from ward |
 | GET | `/api/plume/upwind/{ward_id}` | Upwind wards via plume context |
 | GET | `/api/plume/flow-chain/{zone_id}` | Wind flow order within zone |
+| GET | `/api/plume/industrial-source/{ward_id}` | Spike detection + Zenodo industrial source match + Gaussian plume concentration |
 | GET | `/api/attribution/ward/{ward_id}` | Full ward source attribution |
 | GET | `/api/attribution/zone/{zone_id}` | Zone-level source attribution |
 | GET | `/api/attribution/city` | City-wide source contribution summary |
@@ -227,18 +236,108 @@ VITE_API_URL=https://your-backend.onrender.com
 
 ## Deployment
 
-| Component | Platform | Config |
+### Current Production Setup
+
+- **Live URL:** https://hackdata.rajatrulaniya.com
+- **Server:** AWS EC2 (`t3.small`)
+- **Container Orchestration:** `docker-compose` for frontend + backend services
+
+### CI/CD Pipeline (GitHub Actions)
+
+- Pipeline file: `.github/workflows/cicd.yaml`
+- Trigger: every push to `main`
+- Workflow actions:
+  - Builds frontend and backend Docker images
+  - Pushes images to Docker Hub (`latest` + run-number tags)
+  - Connects to EC2 over SSH and runs `docker compose pull` + `docker compose up -d`
+- Outcome: deployments are automated on every push with no manual server steps.
+
+### Reverse Proxy and TLS
+
+- Root `nginx.conf` acts as reverse proxy in front of containers.
+- HTTP (`:80`) traffic is redirected to HTTPS.
+- HTTPS (`:443`) is terminated at Nginx with Let's Encrypt SSL/TLS certificates.
+- Request routing:
+  - `/` -> frontend container (`127.0.0.1:3000`)
+  - `/api/` -> backend container (`127.0.0.1:8000`)
+  - `/ws/` -> backend WebSocket endpoint
+
+### Frontend Image Optimization
+
+- `frontend/Dockerfile` uses a multi-stage build:
+  - Stage 1 (`node:20-alpine`) compiles the Vite app
+  - Stage 2 (`nginx:stable-alpine`) serves only built static assets
+- Benefit: smaller production image size and faster deployment/pull times.
+
+### Dynamic Configuration Handling
+
+- `frontend/entrypoint.sh` injects runtime config into `/usr/share/nginx/html/config.js` using:
+  - `BACKEND_HOST`
+  - `BACKEND_PORT`
+- This avoids React build-time API URL hardcoding and keeps the frontend image environment-agnostic.
+- In `docker-compose.yml`, these variables are set at runtime, so the same image can be reused across environments without rebuilding.
+
+---
+
+## Hackdata Research Pipeline Integration
+
+The `hackdata backend/` directory contains a standalone research analysis script that extends AQMS with a real-data industrial attribution pipeline. Its core capabilities have been integrated into the FastAPI backend.
+
+### What Was Integrated
+
+| Capability | hackdata Source | Integrated As |
 |---|---|---|
-| Frontend | Vercel | https://aqms-livid.vercel.app |
-| Backend | Render | https://aqms-backend-ue5x.onrender.com |
-| Source | GitHub | github.com/sheelendra-scripts/AQMS |
+| Zenodo Delhi industrial emissions grid | `DelhiDomain_2020.shp` | `backend/data/industrial_sources.csv` + `backend/services/industrial_sources.py` |
+| Z-score pollution spike detection | `main.py §5` | `backend/services/spike_detector.py` |
+| Wind-based source coordinate estimation | `main.py §6–7` | `backend/services/atmospheric.py → estimate_source_coordinates()` |
+| Gaussian plume + industrial source match | `main.py §11–13` | `backend/routers/plume.py → /api/plume/industrial-source/{ward_id}` |
 
-### Render Notes
+### New Endpoint: `/api/plume/industrial-source/{ward_id}`
 
-- Keep `DEMO_MODE=auto` for resilient fallback when sensor feed is unavailable.
-- Set `THINGSPEAK_*` vars in Render dashboard (do not rely only on hardcoded defaults).
-- Set `OWM_API_KEY` only if you want real wind station data; otherwise simulated seasonal wind is used.
-- If startup fails due to SQLAlchemy async greenlet dependency, ensure `greenlet` is installed in the build environment.
+Full pipeline in a single request:
+
+```
+Ward sensor reading
+    │ Z-score vs. population baseline
+    ▼
+Spike event detection (is_spike + severity + z_score)
+    │ current wind (speed + direction)
+    ▼
+Estimate upwind source coordinates
+(project ward location backwards along wind vector)
+    │
+    ▼
+Query Zenodo industrial emissions grid
+(808 grid cells — PM2.5, PM10, NOx, SO2, CO, VOC)
+    │ distance to nearest N grid cells
+    ▼
+Gaussian Plume model (Pasquill-Gifford stability classes A–F)
+per matched industrial source
+    │
+    ▼
+Response: spike flag + estimated source lat/lon + ranked
+          industrial sources + plume concentration estimates
+```
+
+**Query parameters:**
+- `transport_hours` (0.25–6.0, default 1.0) — assumed pollution travel time
+- `top_sources` (1–5, default 3) — number of industrial sources to return
+
+### Data Sources Used
+
+| Dataset | Description |
+|---|---|
+| Zenodo Delhi Domain 2020 | Gridded industrial emission inventory for Delhi, covering PM2.5, PM10, NOx, SO2, CO, VOC per 0.01° grid cell |
+| Open-Meteo Archive API | Hourly historical wind data used to validate the pipeline (2020–2024) |
+
+### Roadmap for Further Integration
+
+- [ ] **Historical spike timeline** — store detected spike events in SQLite and expose `/api/spikes/history`
+- [ ] **Real-time Open-Meteo wind** — replace or augment OWM station data with Open-Meteo current conditions
+- [x] **Frontend: Industrial source layer** — `IndustrialSourceCard` on ML Insights page surfaces spike status, wind, estimated source coords, and ranked Zenodo grid matches with plume bars
+- [x] **Plume Map page** — new `/plume` route with interactive Leaflet map + canvas particle animation simulating plume transport from estimated industrial source to selected ward
+- [ ] **Automated spike alerts** — trigger WebSocket alert when Z-score > 3 during polling loop
+- [ ] **Multi-ward spike correlation** — detect coordinated spikes across adjacent wards to identify zone-level events
 
 ---
 

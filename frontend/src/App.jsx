@@ -10,6 +10,7 @@ import MLInsights from './pages/MLInsights';
 import AlertsPage from './pages/AlertsPage';
 import Landing from './pages/Landing';
 import WindPage from './pages/WindPage';
+import PlumeMapPage from './pages/PlumeMapPage';
 import './styles/globals.css';
 
 function Particles() {
@@ -59,6 +60,7 @@ function AppShell() {
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/advisory" element={<Advisory />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/plume" element={<PlumeMapPage />} />
         </Routes>
       </main>
     </div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, BarChart3, Shield, FileText, Wind,
-  Menu, X, Leaf, Activity, Map, Brain, Bell
+  Menu, X, Leaf, Activity, Map, Brain, Bell, Factory
 } from 'lucide-react';
 import { useLiveData } from '../hooks/useData';
 import NotificationBell from './NotificationBell';
@@ -14,6 +14,7 @@ const navItems = [
   { path: '/wind', label: 'Wind Analysis', icon: Wind },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/ml', label: 'ML Insights', icon: Brain },
+  { path: '/plume', label: 'Plume Map', icon: Factory },
   { path: '/alerts', label: 'Alerts', icon: Bell },
   { path: '/advisory', label: 'Health Advisory', icon: Shield },
   { path: '/admin', label: 'Admin Panel', icon: FileText },

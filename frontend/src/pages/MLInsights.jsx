@@ -6,9 +6,10 @@ import {
 } from 'recharts';
 import {
   Brain, Zap, AlertTriangle, TrendingUp, Clock, Eye, Activity,
-  RefreshCw, Shield, Flame, Wind, CloudRain, Atom
+  RefreshCw, Shield, Flame, Wind, CloudRain, Atom, Factory,
+  MapPin, Gauge, ChevronDown
 } from 'lucide-react';
-import { fetchMLSource, fetchMLForecast, fetchMLAnomaly, detectSourceLocal } from '../services/api';
+import { fetchMLSource, fetchMLForecast, fetchMLAnomaly, fetchIndustrialSource, detectSourceLocal } from '../services/api';
 import { useLiveData } from '../hooks/useData';
 
 const SOURCE_META = {
@@ -282,23 +283,198 @@ function AnomalyCard({ data, loading }) {
   );
 }
 
+/* ── Industrial Source Attribution Card ──────────── */
+const SEVERITY_META = {
+  extreme: { color: '#dc2626', label: 'Extreme Spike', bg: 'rgba(220,38,38,0.07)' },
+  high:    { color: '#f97316', label: 'High Spike',    bg: 'rgba(249,115,22,0.07)' },
+  medium:  { color: '#b45309', label: 'Medium Spike',  bg: 'rgba(180,83,9,0.06)'  },
+  low:     { color: '#ca8a04', label: 'Low Spike',     bg: 'rgba(202,138,4,0.06)' },
+  normal:  { color: '#22c55e', label: 'Normal',        bg: 'rgba(34,197,94,0.06)' },
+  unknown: { color: '#78716c', label: 'Unknown',       bg: 'rgba(120,113,108,0.05)' },
+};
+
+function IndustrialSourceCard({ data, loading, wardId, setWardId }) {
+  if (loading) return (
+    <div className="glass-card" style={{ minHeight: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--earth-400)' }}>
+      Tracing industrial sources...
+    </div>
+  );
+  if (!data) return null;
+
+  const spike = data.spike || {};
+  const sev = SEVERITY_META[spike.severity] || SEVERITY_META.unknown;
+  const sources = data.industrial_source_matches || [];
+  const srcCoords = data.estimated_source_location || {};
+  const wind = data.wind || {};
+
+  const WARD_EXAMPLES = [
+    'ward_01','ward_10','ward_25','ward_50','ward_100','ward_150','ward_200',
+  ];
+
+  return (
+    <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+        <div className="section-title" style={{ margin: 0 }}><Factory size={16} /> Industrial Source Attribution</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: '0.72rem', color: 'var(--earth-400)' }}>Ward:</span>
+          <select
+            value={wardId}
+            onChange={e => setWardId(e.target.value)}
+            style={{
+              fontSize: '0.78rem', padding: '4px 8px', borderRadius: 8,
+              border: '1px solid var(--earth-200)', background: 'var(--earth-50)',
+              color: 'var(--earth-700)', cursor: 'pointer',
+            }}
+          >
+            {WARD_EXAMPLES.map(w => <option key={w} value={w}>{w}</option>)}
+          </select>
+        </div>
+      </div>
+      <p style={{ fontSize: '0.78rem', color: 'var(--earth-400)', marginBottom: 16 }}>
+        Hackdata pipeline · Z-score spike detection → Zenodo industrial DB → Gaussian plume
+      </p>
+
+      {/* Spike status */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
+        background: sev.bg, borderRadius: 14,
+        border: `1.5px solid ${sev.color}25`, marginBottom: 16,
+      }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: `${sev.color}15`, border: `2px solid ${sev.color}40`, flexShrink: 0,
+        }}>
+          {spike.is_spike ? <AlertTriangle size={20} color={sev.color} /> : <Shield size={20} color={sev.color} />}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: '0.95rem', color: sev.color }}>
+            {spike.is_spike ? `Pollution Spike Detected — ${sev.label}` : 'No Spike — Normal Reading'}
+          </div>
+          <div style={{ fontSize: '0.74rem', color: 'var(--earth-500)', marginTop: 2 }}>
+            Z-score: <strong>{spike.z_score ?? '—'}</strong> &nbsp;·&nbsp;
+            PM2.5 baseline: <strong>{spike.mean ?? '—'} ± {spike.std ?? '—'} µg/m³</strong>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '0.65rem', color: 'var(--earth-400)', textTransform: 'uppercase' }}>Ward PM2.5</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 800, color: sev.color }}>
+            {data.ward?.pm25 ?? '—'}
+          </div>
+          <div style={{ fontSize: '0.65rem', color: 'var(--earth-400)' }}>µg/m³</div>
+        </div>
+      </div>
+
+      {/* Wind + estimated source coords */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 140, padding: '10px 14px', background: 'rgba(14,165,233,0.05)', borderRadius: 12, border: '1px solid rgba(14,165,233,0.15)' }}>
+          <div style={{ fontSize: '0.68rem', color: 'var(--earth-400)', textTransform: 'uppercase', marginBottom: 4 }}>Wind</div>
+          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0369a1' }}>
+            {wind.wind_speed ?? '—'} m/s · {wind.wind_direction ?? '—'}°
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--earth-500)', marginTop: 2 }}>{wind.wind_label || ''}</div>
+        </div>
+        <div style={{ flex: 1, minWidth: 140, padding: '10px 14px', background: 'rgba(139,92,246,0.05)', borderRadius: 12, border: '1px solid rgba(139,92,246,0.15)' }}>
+          <div style={{ fontSize: '0.68rem', color: 'var(--earth-400)', textTransform: 'uppercase', marginBottom: 4 }}>Est. Source Location</div>
+          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#7c3aed' }}>
+            {srcCoords.source_lat ?? '—'}°N, {srcCoords.source_lon ?? '—'}°E
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--earth-500)', marginTop: 2 }}>
+            {srcCoords.travel_distance_km ?? '—'} km upwind · {srcCoords.transport_hours ?? '—'}h transport
+          </div>
+        </div>
+      </div>
+
+      {/* Industrial source matches */}
+      {sources.length > 0 && (
+        <>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--earth-500)', marginBottom: 8 }}>
+            Nearest Industrial Sources (Zenodo Delhi 2020)
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {sources.map((src, i) => (
+              <div key={i} style={{
+                padding: '10px 14px', borderRadius: 12,
+                background: i === 0 ? 'rgba(239,68,68,0.05)' : 'var(--earth-50)',
+                border: `1px solid ${i === 0 ? 'rgba(239,68,68,0.15)' : 'var(--earth-150)'}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{
+                      width: 20, height: 20, borderRadius: '50%', display: 'inline-flex', alignItems: 'center',
+                      justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800,
+                      background: i === 0 ? '#ef4444' : 'var(--earth-200)', color: i === 0 ? 'white' : 'var(--earth-600)',
+                    }}>{i + 1}</span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--earth-700)' }}>
+                      {src.lat}°N, {src.lon}°E
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--earth-500)' }}>
+                    {(src.distance_m / 1000).toFixed(2)} km away
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'PM2.5', value: src.pm25_emission, unit: 't/d' },
+                    { label: 'NOx', value: src.nox_emission, unit: 't/d' },
+                    { label: 'SO₂', value: src.so2_emission, unit: 't/d' },
+                    { label: 'CO', value: src.co_emission, unit: 't/d' },
+                  ].map(({ label, value, unit }) => (
+                    <div key={label} style={{ fontSize: '0.7rem', color: 'var(--earth-500)' }}>
+                      <span style={{ fontWeight: 600 }}>{label}:</span> {value} {unit}
+                    </div>
+                  ))}
+                </div>
+                {src.plume_conc_ug_m3 != null && (
+                  <div style={{ marginTop: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--earth-400)' }}>Plume conc. at ward (Gaussian PG-{src.stability_class})</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#ef4444' }}>
+                        {src.plume_conc_ug_m3.toExponential(3)} g/m³
+                      </span>
+                    </div>
+                    <div style={{ height: 5, background: 'var(--earth-100)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', borderRadius: 3,
+                        background: i === 0 ? '#ef4444' : '#f97316',
+                        width: `${Math.min(100, (i === 0 ? 100 : (sources[0].plume_conc_ug_m3 > 0 ? (src.plume_conc_ug_m3 / sources[0].plume_conc_ug_m3) * 100 : 0)))}%`,
+                      }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div style={{ marginTop: 12, fontSize: '0.68rem', color: 'var(--earth-400)', textAlign: 'right' }}>
+        Dataset: Zenodo Delhi Domain 2020 · Model: Pasquill-Gifford Gaussian Plume
+      </div>
+    </motion.div>
+  );
+}
+
 /* ── ML Insights Page ─────────────────────────────── */
 export default function MLInsights() {
   const [sourceData, setSourceData] = useState(null);
   const [forecastData, setForecastData] = useState(null);
   const [anomalyData, setAnomalyData] = useState(null);
-  const [loading, setLoading] = useState({ source: true, forecast: true, anomaly: true });
+  const [industrialData, setIndustrialData] = useState(null);
+  const [industrialWardId, setIndustrialWardId] = useState('ward_01');
+  const [loading, setLoading] = useState({ source: true, forecast: true, anomaly: true, industrial: true });
   const [horizon, setHorizon] = useState(24);
   const [lastUpdated, setLastUpdated] = useState(null);
   const { data: liveData } = useLiveData();
 
   const fetchAll = useCallback(async () => {
-    setLoading({ source: true, forecast: true, anomaly: true });
+    setLoading({ source: true, forecast: true, anomaly: true, industrial: true });
     try {
-      const [src, fc, an] = await Promise.all([
+      const [src, fc, an, ind] = await Promise.all([
         fetchMLSource().catch(() => null),
         fetchMLForecast(horizon).catch(() => null),
         fetchMLAnomaly().catch(() => null),
+        fetchIndustrialSource(industrialWardId).catch(() => null),
       ]);
       // Use API result or client-side fallback for source
       if (src && src.source && src.source !== 'unknown') {
@@ -308,10 +484,11 @@ export default function MLInsights() {
       }
       setForecastData(fc);
       setAnomalyData(an);
+      setIndustrialData(ind);
       setLastUpdated(new Date());
     } catch (e) { /* swallow */ }
-    setLoading({ source: false, forecast: false, anomaly: false });
-  }, [horizon, liveData]);
+    setLoading({ source: false, forecast: false, anomaly: false, industrial: false });
+  }, [horizon, liveData, industrialWardId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -323,6 +500,15 @@ export default function MLInsights() {
       setLoading(l => ({ ...l, forecast: false }));
     }).catch(() => setLoading(l => ({ ...l, forecast: false })));
   }, [horizon]);
+
+  // Re-fetch industrial data when ward changes
+  useEffect(() => {
+    setLoading(l => ({ ...l, industrial: true }));
+    fetchIndustrialSource(industrialWardId).then(d => {
+      setIndustrialData(d);
+      setLoading(l => ({ ...l, industrial: false }));
+    }).catch(() => setLoading(l => ({ ...l, industrial: false })));
+  }, [industrialWardId]);
 
   // Auto-refresh every 60s
   useEffect(() => {
@@ -370,6 +556,7 @@ export default function MLInsights() {
           { label: 'Source Classifier', model: 'Random Forest', icon: Brain, color: '#8b5cf6' },
           { label: 'AQI Forecaster', model: 'XGBoost', icon: TrendingUp, color: '#10b981' },
           { label: 'Anomaly Detector', model: 'Isolation Forest', icon: Eye, color: '#f97316' },
+          { label: 'Industrial Plume', model: 'Gaussian PG', icon: Factory, color: '#ef4444' },
         ].map(({ label, model, icon: Icon, color }) => (
           <div key={label} style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px',
@@ -390,6 +577,14 @@ export default function MLInsights() {
 
       {/* Forecast full-width */}
       <ForecastCard data={forecastData} loading={loading.forecast} horizon={horizon} setHorizon={setHorizon} />
+
+      {/* Industrial Source Attribution full-width */}
+      <IndustrialSourceCard
+        data={industrialData}
+        loading={loading.industrial}
+        wardId={industrialWardId}
+        setWardId={setIndustrialWardId}
+      />
     </div>
   );
 }

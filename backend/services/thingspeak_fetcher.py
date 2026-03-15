@@ -48,15 +48,15 @@ def _generate_demo_reading(ts: Optional[datetime] = None) -> dict:
     evening_peak = math.exp(-((hour - 18) ** 2) / 8)
     traffic_factor = 0.3 + 0.7 * (morning_peak + evening_peak)
 
-    # Base values — Delhi-realistic high pollution levels
+    # Base values — tuned for AQI range 100-180
     noise = lambda scale=1.0: random.gauss(0, scale)
 
     temperature = 28.0 + 5 * math.sin((hour - 14) * math.pi / 12) + noise(1.5)
     humidity = 55.0 - 15 * math.sin((hour - 14) * math.pi / 12) + noise(3)
-    pm25 = max(30, 140 * traffic_factor + noise(20))
-    co = max(0.5, 4.5 * traffic_factor + noise(0.5))
-    no2 = max(0.02, 0.14 * traffic_factor + noise(0.02))
-    tvoc = max(0.05, 0.70 * traffic_factor + noise(0.12))
+    pm25 = max(30, 70 * traffic_factor + noise(8))
+    co = max(0.5, 2.8 * traffic_factor + noise(0.3))
+    no2 = max(0.02, 0.06 * traffic_factor + noise(0.01))
+    tvoc = max(0.05, 0.45 * traffic_factor + noise(0.08))
 
     _ = calculate_aqi(pm25, co, no2)
     aqi = _random_dashboard_aqi()
