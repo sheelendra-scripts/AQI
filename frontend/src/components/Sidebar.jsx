@@ -11,6 +11,7 @@ const navItems = [
   { path: '/landing', label: 'Home', icon: Leaf },
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/map', label: 'Ward Map', icon: Map },
+  { path: '/wind', label: 'Wind Analysis', icon: Wind },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/ml', label: 'ML Insights', icon: Brain },
   { path: '/alerts', label: 'Alerts', icon: Bell },

@@ -44,6 +44,41 @@ class Ward(Base):
     description = Column(String(255), nullable=True)
 
 
+class WindReading(Base):
+    """Stores wind observations from zone weather stations."""
+    __tablename__ = "wind_readings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, nullable=False, index=True)
+    station_id = Column(String(50), nullable=False, index=True)
+    wind_speed = Column(Float)       # m/s
+    wind_direction = Column(Float)   # degrees (0=N, 90=E)
+    temperature = Column(Float)
+    pressure = Column(Float)
+    source = Column(String(20))      # 'openweathermap' or 'simulated'
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AttributionScore(Base):
+    """Stores Bayesian source attribution probabilities per ward."""
+    __tablename__ = "attribution_scores"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, nullable=False, index=True)
+    ward_id = Column(String(50), nullable=False, index=True)
+    vehicular = Column(Float, default=0.0)
+    industrial = Column(Float, default=0.0)
+    biomass = Column(Float, default=0.0)
+    construction = Column(Float, default=0.0)
+    dust = Column(Float, default=0.0)
+    regional = Column(Float, default=0.0)
+    dominant_source = Column(String(30))
+    confidence = Column(String(10))  # low/medium/high
+    wind_speed = Column(Float)
+    wind_direction = Column(Float)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 async def init_db():
     """Create all tables."""
     async with engine.begin() as conn:

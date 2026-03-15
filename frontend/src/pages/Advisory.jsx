@@ -11,7 +11,7 @@ import { useLiveData } from '../hooks/useData';
 const AQI_LEVELS = [
   { max: 50,  label: 'Good',       color: '#22c55e', bg: 'rgba(34,197,94,0.08)',   border: 'rgba(34,197,94,0.25)',   emoji: '🌿', text: '#15803d' },
   { max: 100, label: 'Satisfactory', color: '#84cc16', bg: 'rgba(132,204,22,0.08)', border: 'rgba(132,204,22,0.25)', emoji: '☀️', text: '#4d7c0f' },
-  { max: 200, label: 'Moderate',   color: '#eab308', bg: 'rgba(234,179,8,0.08)',   border: 'rgba(234,179,8,0.3)',   emoji: '⚠️', text: '#92400e' },
+  { max: 200, label: 'Moderate',   color: '#b45309', bg: 'rgba(234,179,8,0.08)',   border: 'rgba(234,179,8,0.3)',   emoji: '⚠️', text: '#92400e' },
   { max: 300, label: 'Poor',       color: '#f97316', bg: 'rgba(249,115,22,0.08)',  border: 'rgba(249,115,22,0.3)',  emoji: '🟠', text: '#c2410c' },
   { max: 400, label: 'Very Poor',  color: '#ef4444', bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.3)',   emoji: '🔴', text: '#b91c1c' },
   { max: 999, label: 'Severe',     color: '#7c3aed', bg: 'rgba(124,58,237,0.08)',  border: 'rgba(124,58,237,0.3)',  emoji: '🚨', text: '#5b21b6' },
@@ -117,7 +117,7 @@ const POLLUTANT_INFO = [
   {
     key: 'tvoc', label: 'VOC (TVOC)', unit: 'ppm',
     safe: 0.2, moderate: 0.5, severe: 1.0,
-    color: '#eab308',
+    color: '#b45309',
     health: 'Volatile organic compounds cause eye, nose and throat irritation. Long-term exposure links to liver damage and some cancers.',
     tips: ['Ventilate rooms after using paints, adhesives or cleaning products', 'Avoid freshly painted rooms for 48 hours', 'Activated carbon filters help with TVOC indoors'],
   },
@@ -127,7 +127,7 @@ function PollutantBar({ value, safe, moderate, severe, color }) {
   const max = severe * 1.5;
   const pct = Math.min(100, (value / max) * 100);
   const status = value <= safe ? 'Safe' : value <= moderate ? 'Elevated' : 'High';
-  const statusColor = value <= safe ? '#22c55e' : value <= moderate ? '#eab308' : '#ef4444';
+  const statusColor = value <= safe ? '#22c55e' : value <= moderate ? '#b45309' : '#ef4444';
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: 5 }}>

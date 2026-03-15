@@ -14,7 +14,7 @@ import { useLiveData } from '../hooks/useData';
 function aqiColor(aqi) {
   if (!aqi) return '#64748b';
   if (aqi <= 50) return '#22c55e'; if (aqi <= 100) return '#84cc16';
-  if (aqi <= 200) return '#eab308'; if (aqi <= 300) return '#f97316';
+  if (aqi <= 200) return '#b45309'; if (aqi <= 300) return '#f97316';
   return '#ef4444';
 }
 function aqiBand(aqi) {
@@ -260,7 +260,7 @@ const FEATURES = [
   { icon: Shield, color: '#f97316', num: '05', title: 'Health Advisories',
     body: 'Personalised guidance for 6 population profiles — general public, children, elderly, athletes, asthma patients, and pregnant women.',
     tags: ['6 Profiles', 'CPCB Scale', 'Activity Safety'], path: '/advisory' },
-  { icon: FileText, color: '#eab308', num: '06', title: 'Policy Automation',
+  { icon: FileText, color: '#b45309', num: '06', title: 'Policy Automation',
     body: 'Source-specific mitigation actions recommended to city administrators with dispatch tracking and authority chain.',
     tags: ['Policy Engine', 'Dispatch', 'MCD'], path: '/admin' },
 ];
@@ -471,7 +471,7 @@ export default function Landing() {
                 { label: 'PM 2.5', val: data.pm25, color: '#f97316', unit: 'µg/m³' },
                 { label: 'CO', val: data.co, color: '#8b5cf6', unit: 'mg/m³' },
                 { label: 'NO₂', val: data.no2, color: '#0ea5e9', unit: 'ppm' },
-                { label: 'TVOC', val: data.tvoc, color: '#eab308', unit: 'ppm' },
+                { label: 'TVOC', val: data.tvoc, color: '#b45309', unit: 'ppm' },
                 { label: 'Temp', val: data.temperature, color: '#ef4444', unit: '°C' },
                 { label: 'Humidity', val: data.humidity, color: '#38bdf8', unit: '%' },
               ].map(({ label, val, color, unit }) => (

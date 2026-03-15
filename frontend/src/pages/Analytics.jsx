@@ -32,7 +32,7 @@ const POLLUTANTS = [
   { key: 'pm25', name: 'PM 2.5', color: '#f97316', max: 250 },
   { key: 'co', name: 'CO', color: '#8b5cf6', max: 10 },
   { key: 'no2', name: 'NO₂', color: '#0ea5e9', max: 0.2 },
-  { key: 'tvoc', name: 'TVOC', color: '#eab308', max: 1 },
+  { key: 'tvoc', name: 'TVOC', color: '#b45309', max: 1 },
   { key: 'temperature', name: 'Temp', color: '#ef4444', max: 50 },
   { key: 'humidity', name: 'Humidity', color: '#38bdf8', max: 100 },
 ];
@@ -207,7 +207,7 @@ function HourlyDistribution({ history }) {
   const getBarColor = (aqi) => {
     if (aqi <= 50) return '#22c55e';
     if (aqi <= 100) return '#84cc16';
-    if (aqi <= 200) return '#eab308';
+    if (aqi <= 200) return '#b45309';
     if (aqi <= 300) return '#f97316';
     return '#ef4444';
   };

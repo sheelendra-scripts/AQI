@@ -21,8 +21,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from services.database import init_db
 from services.thingspeak_fetcher import fetch_and_store, get_cached_latest
+from services.wind_service import update_wind_cache, record_wind_snapshot
 from routers import live, history, policy, wards, ml, alerts
 from routers.alerts import evaluate_rules
+from routers import wind as wind_router
+from routers import plume as plume_router
+from routers import attribution as attribution_router
 
 logger = logging.getLogger("aqms")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
@@ -47,6 +51,7 @@ async def broadcast(data: dict):
 async def polling_loop():
     """Fetch from ThingSpeak every 30s and broadcast to WebSocket clients."""
     logger.info("🌿 ThingSpeak polling loop started (30s interval)")
+    wind_counter = 0  # Track cycles for wind polling (every 10 cycles = 5 min)
     while True:
         try:
             reading = await fetch_and_store()
@@ -68,6 +73,17 @@ async def polling_loop():
             except Exception as ae:
                 logger.error(f"Alert evaluation error: {ae}")
 
+            # Update wind data every 10 cycles (~5 minutes)
+            wind_counter += 1
+            if wind_counter >= 10:
+                wind_counter = 0
+                try:
+                    await update_wind_cache()
+                    record_wind_snapshot()
+                    logger.info("🌬️ Wind data refreshed")
+                except Exception as we:
+                    logger.error(f"Wind update error: {we}")
+
         except Exception as e:
             logger.error(f"Polling error: {e}")
         await asyncio.sleep(30)
@@ -79,6 +95,13 @@ async def lifespan(app: FastAPI):
     """Start DB and background poller on startup."""
     await init_db()
     logger.info("✅ Database initialized")
+    # Initialize wind cache on startup
+    try:
+        await update_wind_cache()
+        record_wind_snapshot()
+        logger.info("🌬️ Wind data initialized")
+    except Exception as e:
+        logger.warning(f"Wind init failed (will retry): {e}")
     task = asyncio.create_task(polling_loop())
     yield
     task.cancel()
@@ -109,6 +132,9 @@ app.include_router(policy.router)
 app.include_router(wards.router)
 app.include_router(ml.router)
 app.include_router(alerts.router)
+app.include_router(wind_router.router)
+app.include_router(plume_router.router)
+app.include_router(attribution_router.router)
 
 
 @app.get("/")
@@ -121,6 +147,10 @@ async def root():
                       "/api/wards", "/api/ml/source", "/api/ml/forecast",
                       "/api/ml/anomaly", "/api/ml/summary",
                       "/api/alerts", "/api/alerts/rules", "/api/alerts/stats",
+                      "/api/wind/current", "/api/wind/field", "/api/wind/upwind/{ward_id}",
+                      "/api/plume/trajectory/{ward_id}", "/api/plume/upwind/{ward_id}", "/api/plume/flow-chain/{zone_id}",
+                      "/api/attribution/ward/{ward_id}", "/api/attribution/zone/{zone_id}", "/api/attribution/city",
+                      "/api/wind/history", "/api/wind/seasonal",
                       "/ws/live"],
     }
 

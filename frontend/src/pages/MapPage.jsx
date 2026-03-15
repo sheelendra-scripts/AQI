@@ -5,7 +5,8 @@ import {
   Droplets, Atom, ChevronRight, X, Layers, Search, Grid3X3, Map as MapIcon
 } from 'lucide-react';
 import WardMap from '../components/WardMap';
-import { fetchWards } from '../services/api';
+import AttributionPanel from '../components/AttributionPanel';
+import { fetchWards, fetchWindField, fetchAttribution, fetchTrajectory } from '../services/api';
 
 const SOURCE_ICONS = {
   vehicle: '🚗',
@@ -14,14 +15,14 @@ const SOURCE_ICONS = {
   biomass: '🔥',
 };
 
-function WardDetailPanel({ ward, onClose }) {
+function WardDetailPanel({ ward, attribution, onClose }) {
   if (!ward) return null;
 
   const metrics = [
     { label: 'PM 2.5', value: ward.pm25, unit: 'µg/m³', icon: Wind, color: '#f97316' },
     { label: 'CO', value: ward.co, unit: 'ppm', icon: Flame, color: '#8b5cf6' },
     { label: 'NO₂', value: ward.no2, unit: 'ppm', icon: CloudRain, color: '#0ea5e9' },
-    { label: 'TVOC', value: ward.tvoc, unit: 'ppm', icon: Atom, color: '#eab308' },
+    { label: 'TVOC', value: ward.tvoc, unit: 'ppm', icon: Atom, color: '#b45309' },
     { label: 'Temp', value: ward.temperature, unit: '°C', icon: Thermometer, color: '#ef4444' },
     { label: 'Humidity', value: ward.humidity, unit: '%', icon: Droplets, color: '#38bdf8' },
   ];
@@ -69,6 +70,25 @@ function WardDetailPanel({ ward, onClose }) {
         </div>
       )}
 
+      {ward.wind_exposure && (
+        <div style={{
+          border: '1px solid rgba(14,165,233,0.25)', borderRadius: 10, padding: '10px 12px',
+          background: 'rgba(14,165,233,0.05)', marginBottom: 10,
+        }}>
+          <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#0369a1', marginBottom: 4 }}>
+            Wind Exposure
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--earth-700)' }}>
+            {ward.wind_exposure.wind_speed} m/s · {ward.wind_exposure.wind_direction}°
+          </div>
+          {(ward.wind_exposure.upwind_sources || []).length > 0 && (
+            <div style={{ marginTop: 6, fontSize: '0.74rem', color: 'var(--earth-500)' }}>
+              Upwind: {ward.wind_exposure.upwind_sources.slice(0, 2).map(s => s.name).join(', ')}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="ward-metrics-mini">
         {metrics.map(({ label, value, unit, icon: Icon, color }) => (
           <div key={label} className="ward-metric-item">
@@ -80,6 +100,8 @@ function WardDetailPanel({ ward, onClose }) {
           </div>
         ))}
       </div>
+
+      <AttributionPanel attribution={attribution} />
     </motion.div>
   );
 }
@@ -111,14 +133,20 @@ export default function MapPage() {
   const [selectedWard, setSelectedWard] = useState(null);
   const [showList, setShowList] = useState(true);
   const [viewMode, setViewMode] = useState('wards'); // 'zones' | 'wards'
+  const [colorMode, setColorMode] = useState('aqi'); // 'aqi' | 'source' | 'wind'
   const [searchQuery, setSearchQuery] = useState('');
+  const [windField, setWindField] = useState([]);
+  const [wardAttribution, setWardAttribution] = useState(null);
+  const [wardTrajectory, setWardTrajectory] = useState(null);
 
   const loadWards = useCallback(async () => {
     try {
-      const res = await fetchWards();
+      const [res, wf] = await Promise.all([fetchWards(), fetchWindField(11)]);
       setWards(res.wards || []);
+      setWindField(wf.field || []);
     } catch {
       setWards([]);
+      setWindField([]);
     } finally {
       setLoading(false);
     }
@@ -147,6 +175,22 @@ export default function MapPage() {
   }, [viewMode, zoneData, wardOnlyData, searchQuery]);
 
   const selectedWardData = wards.find(w => w.ward_id === selectedWard);
+
+  useEffect(() => {
+    if (!selectedWard || selectedWard.startsWith('zone_')) {
+      setWardAttribution(null);
+      setWardTrajectory(null);
+      return;
+    }
+    let cancelled = false;
+    fetchAttribution(selectedWard)
+      .then((res) => { if (!cancelled) setWardAttribution(res?.attribution || null); })
+      .catch(() => { if (!cancelled) setWardAttribution(null); });
+    fetchTrajectory(selectedWard, 3)
+      .then((res) => { if (!cancelled) setWardTrajectory(res?.trajectory || null); })
+      .catch(() => { if (!cancelled) setWardTrajectory(null); });
+    return () => { cancelled = true; };
+  }, [selectedWard]);
 
   // City-wide averages (from wards only)
   const cityAqi = wardOnlyData.length
@@ -187,6 +231,33 @@ export default function MapPage() {
               <Layers size={14} />
               {showList ? 'Hide' : 'List'}
             </button>
+            <div className="map-view-toggle">
+              <button
+                className={`map-toggle-btn ${colorMode === 'aqi' ? 'active' : ''}`}
+                onClick={() => setColorMode('aqi')}
+              >
+                AQI
+              </button>
+              <button
+                className={`map-toggle-btn ${colorMode === 'source' ? 'active' : ''}`}
+                onClick={() => setColorMode('source')}
+              >
+                Source
+              </button>
+              <button
+                className={`map-toggle-btn ${colorMode === 'wind' ? 'active' : ''}`}
+                onClick={() => setColorMode('wind')}
+              >
+                <Wind size={12} /> Wind
+              </button>
+              <button
+                className={`map-toggle-btn ${colorMode === 'flow' ? 'active' : ''}`}
+                onClick={() => setColorMode('flow')}
+                style={colorMode === 'flow' ? { background: 'linear-gradient(135deg, #0ea5e9, #8b5cf6)', color: '#fff' } : {}}
+              >
+                <Wind size={12} /> Flow
+              </button>
+            </div>
             <button className="map-btn" onClick={loadWards}>
               <RefreshCw size={14} />
             </button>
@@ -283,6 +354,9 @@ export default function MapPage() {
               selectedWard={selectedWard}
               onSelectWard={setSelectedWard}
               viewMode={viewMode}
+              colorMode={colorMode}
+              windField={windField}
+              trajectory={wardTrajectory}
             />
           )}
 
@@ -290,6 +364,7 @@ export default function MapPage() {
             {selectedWardData && (
               <WardDetailPanel
                 ward={selectedWardData}
+                attribution={wardAttribution}
                 onClose={() => setSelectedWard(null)}
               />
             )}
@@ -303,7 +378,7 @@ export default function MapPage() {
 function getAqiColor(aqi) {
   if (aqi <= 50) return '#22c55e';
   if (aqi <= 100) return '#84cc16';
-  if (aqi <= 200) return '#eab308';
+  if (aqi <= 200) return '#b45309';
   if (aqi <= 300) return '#f97316';
   if (aqi <= 400) return '#ef4444';
   return '#991b1b';

@@ -206,7 +206,7 @@ export default function Dashboard() {
               const SOURCE_META = {
                 vehicle:      { icon: '🚗', label: 'Vehicle Emissions', color: '#f97316' },
                 industrial:   { icon: '🏭', label: 'Industrial Activity', color: '#ef4444' },
-                construction: { icon: '🏗️', label: 'Construction Dust', color: '#eab308' },
+                construction: { icon: '🏗️', label: 'Construction Dust', color: '#b45309' },
                 biomass:      { icon: '🔥', label: 'Biomass Burning', color: '#a855f7' },
                 mixed:        { icon: '🌫️', label: 'Mixed Sources', color: '#6366f1' },
                 unknown:      { icon: '❓', label: 'Unknown', color: '#78716c' },
