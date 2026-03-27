@@ -9,7 +9,7 @@ import {
   RefreshCw, Shield, Flame, Wind, CloudRain, Atom, Factory,
   MapPin, Gauge, ChevronDown
 } from 'lucide-react';
-import { fetchMLSource, fetchMLForecast, fetchMLAnomaly, fetchIndustrialSource, detectSourceLocal } from '../services/api';
+import { fetchMLSource, fetchMLForecast, fetchMLAnomaly, fetchIndustrialSource, fetchWards, detectSourceLocal } from '../services/api';
 import { useLiveData } from '../hooks/useData';
 
 const SOURCE_META = {
@@ -293,7 +293,7 @@ const SEVERITY_META = {
   unknown: { color: '#78716c', label: 'Unknown',       bg: 'rgba(120,113,108,0.05)' },
 };
 
-function IndustrialSourceCard({ data, loading, wardId, setWardId }) {
+function IndustrialSourceCard({ data, loading, wardId, setWardId, wardOptions }) {
   if (loading) return (
     <div className="glass-card" style={{ minHeight: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--earth-400)' }}>
       Tracing industrial sources...
@@ -306,10 +306,6 @@ function IndustrialSourceCard({ data, loading, wardId, setWardId }) {
   const sources = data.industrial_source_matches || [];
   const srcCoords = data.estimated_source_location || {};
   const wind = data.wind || {};
-
-  const WARD_EXAMPLES = [
-    'ward_01','ward_10','ward_25','ward_50','ward_100','ward_150','ward_200',
-  ];
 
   return (
     <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
@@ -327,7 +323,7 @@ function IndustrialSourceCard({ data, loading, wardId, setWardId }) {
               color: 'var(--earth-700)', cursor: 'pointer',
             }}
           >
-            {WARD_EXAMPLES.map(w => <option key={w} value={w}>{w}</option>)}
+            {wardOptions.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
           </select>
         </div>
       </div>
@@ -461,13 +457,28 @@ export default function MLInsights() {
   const [forecastData, setForecastData] = useState(null);
   const [anomalyData, setAnomalyData] = useState(null);
   const [industrialData, setIndustrialData] = useState(null);
-  const [industrialWardId, setIndustrialWardId] = useState('ward_01');
+  const [industrialWardId, setIndustrialWardId] = useState('ward_1');
+  const [wardOptions, setWardOptions] = useState([]);
   const [loading, setLoading] = useState({ source: true, forecast: true, anomaly: true, industrial: true });
   const [horizon, setHorizon] = useState(24);
   const [lastUpdated, setLastUpdated] = useState(null);
   const { data: liveData } = useLiveData();
 
+  useEffect(() => {
+    fetchWards().then(res => {
+      const wards = (res?.wards || [])
+        .filter(w => w.feature_type === 'ward')
+        .map(w => ({ id: w.ward_id, name: w.name }))
+        .sort((a, b) => Number(a.id.split('_')[1] || 0) - Number(b.id.split('_')[1] || 0));
+      setWardOptions(wards);
+      if (wards.length > 0 && !wards.some(w => w.id === industrialWardId)) {
+        setIndustrialWardId(wards[0].id);
+      }
+    }).catch(() => {});
+  }, []);
+
   const fetchAll = useCallback(async () => {
+    if (!industrialWardId) return;
     setLoading({ source: true, forecast: true, anomaly: true, industrial: true });
     try {
       const [src, fc, an, ind] = await Promise.all([
@@ -503,6 +514,7 @@ export default function MLInsights() {
 
   // Re-fetch industrial data when ward changes
   useEffect(() => {
+    if (!industrialWardId) return;
     setLoading(l => ({ ...l, industrial: true }));
     fetchIndustrialSource(industrialWardId).then(d => {
       setIndustrialData(d);
@@ -584,6 +596,7 @@ export default function MLInsights() {
         loading={loading.industrial}
         wardId={industrialWardId}
         setWardId={setIndustrialWardId}
+        wardOptions={wardOptions}
       />
     </div>
   );

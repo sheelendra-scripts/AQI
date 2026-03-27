@@ -8,6 +8,7 @@ from fastapi import APIRouter
 
 from utils.aqi_calc import calculate_aqi, get_aqi_category
 from services.wind_service import interpolate_wind, get_upwind_wards
+from services.aqi_live_service import get_live_zone_aqi
 from ml.attribution import compute_bayesian_attribution, aggregate_zone_attribution
 
 router = APIRouter(prefix="/api", tags=["wards"])
@@ -149,18 +150,26 @@ for zone_name, zdef in ZONE_DEFS.items():
             "feature_type": "ward",
         })
 
-# Pollution profiles — Delhi-realistic high AQI (typical winter readings 150-350+)
+# Pollution profiles tuned for dashboard map readability (roughly 80-190 AQI)
 PROFILES = {
-    "clean":        {"pm25_base": 90,  "co_base": 2.0, "no2_base": 0.06, "tvoc_base": 0.30, "so2_base": 0.01, "source": None},
-    "vehicle":      {"pm25_base": 160, "co_base": 4.5, "no2_base": 0.14, "tvoc_base": 0.50, "so2_base": 0.02, "source": "vehicle"},
-    "industrial":   {"pm25_base": 220, "co_base": 6.0, "no2_base": 0.22, "tvoc_base": 1.00, "so2_base": 0.08, "source": "industrial"},
-    "construction": {"pm25_base": 250, "co_base": 3.5, "no2_base": 0.10, "tvoc_base": 1.40, "so2_base": 0.02, "source": "construction"},
-    "biomass":      {"pm25_base": 200, "co_base": 7.5, "no2_base": 0.12, "tvoc_base": 1.20, "so2_base": 0.03, "source": "biomass"},
-    "mixed":        {"pm25_base": 140, "co_base": 3.8, "no2_base": 0.10, "tvoc_base": 0.60, "so2_base": 0.02, "source": "vehicle"},
+    "clean":        {"pm25_base": 32, "co_base": 0.9, "no2_base": 0.020, "tvoc_base": 0.20, "so2_base": 0.006, "source": None},
+    "vehicle":      {"pm25_base": 58, "co_base": 1.8, "no2_base": 0.045, "tvoc_base": 0.35, "so2_base": 0.010, "source": "vehicle"},
+    "industrial":   {"pm25_base": 82, "co_base": 2.6, "no2_base": 0.070, "tvoc_base": 0.70, "so2_base": 0.020, "source": "industrial"},
+    "construction": {"pm25_base": 90, "co_base": 1.6, "no2_base": 0.040, "tvoc_base": 0.85, "so2_base": 0.010, "source": "construction"},
+    "biomass":      {"pm25_base": 74, "co_base": 3.0, "no2_base": 0.050, "tvoc_base": 0.75, "so2_base": 0.013, "source": "biomass"},
+    "mixed":        {"pm25_base": 62, "co_base": 1.7, "no2_base": 0.040, "tvoc_base": 0.45, "so2_base": 0.010, "source": "vehicle"},
 }
 
 
-def _generate_ward_reading(ward: dict) -> dict:
+def _stable_ward_seed(ward_id: str) -> float:
+    """Deterministic 0..1 ward seed (avoids Python hash randomization)."""
+    acc = 0
+    for i, ch in enumerate(ward_id):
+        acc += (i + 1) * ord(ch)
+    return (acc % 1000) / 1000.0
+
+
+def _generate_ward_reading(ward: dict, zone_live: dict = None) -> dict:
     """Generate a realistic reading for a ward based on its pollution profile."""
     now = datetime.now(timezone.utc)
     hour = now.hour + now.minute / 60.0
@@ -172,20 +181,63 @@ def _generate_ward_reading(ward: dict) -> dict:
     prof = PROFILES.get(ward["profile"], PROFILES["mixed"])
     noise = lambda s=1.0: random.gauss(0, s)
 
-    # Add per-ward variation so adjacent wards differ slightly
-    wid_hash = hash(ward["ward_id"]) % 100 / 100.0
-    ward_var = 0.85 + 0.3 * wid_hash
+    # Stronger deterministic local variation for better map separation.
+    wid_hash = _stable_ward_seed(ward["ward_id"])
+    ward_var = 0.72 + 0.56 * wid_hash  # 0.72 .. 1.28
+    spatial_var = 1.0 + 0.14 * math.sin(ward["lat"] * 36.0) + 0.10 * math.cos(ward["lng"] * 33.0)
+    spatial_var = max(0.82, min(1.22, spatial_var))
+    if ward.get("feature_type") == "zone":
+        ward_var = 1.0
+        spatial_var = 1.0
 
-    pm25 = max(5, prof["pm25_base"] * traffic_factor * ward_var + noise(8))
-    co = max(0.1, prof["co_base"] * traffic_factor * ward_var + noise(0.2))
-    no2 = max(0.005, prof["no2_base"] * traffic_factor * ward_var + noise(0.008))
-    tvoc = max(0.01, prof["tvoc_base"] * traffic_factor * ward_var + noise(0.05))
-    so2 = max(0.001, prof["so2_base"] * traffic_factor * ward_var + noise(0.003))
+    pm25 = max(5, prof["pm25_base"] * traffic_factor * ward_var * spatial_var + noise(9))
+    co = max(0.1, prof["co_base"] * traffic_factor * ward_var * spatial_var + noise(0.25))
+    no2 = max(0.005, prof["no2_base"] * traffic_factor * ward_var * spatial_var + noise(0.009))
+    tvoc = max(0.01, prof["tvoc_base"] * traffic_factor * ward_var * spatial_var + noise(0.06))
+    so2 = max(0.001, prof["so2_base"] * traffic_factor * ward_var * spatial_var + noise(0.0035))
+
+    live_aqi = None
+    live_signal_used = False
+    if zone_live:
+        if zone_live.get("pm25") is not None:
+            local_pm_scale = 0.92 + 0.16 * wid_hash + 0.04 * (spatial_var - 1.0)
+            local_pm_scale = max(0.88, min(1.08, local_pm_scale))
+            pm25 = max(5, zone_live["pm25"] * local_pm_scale + noise(2.5))
+            # Convert live PM2.5 directly into AQI using our CPCB logic.
+            pm_only_live_aqi = calculate_aqi(zone_live["pm25"], 0.0, 0.0)
+            live_aqi = int(pm_only_live_aqi)
+            live_signal_used = True
+
+        if zone_live.get("us_aqi") is not None and live_aqi is not None:
+            candidate_live_aqi = int(zone_live["us_aqi"])
+            # Open-Meteo us_aqi can spike at times; only trust when reasonably close.
+            if 0 <= candidate_live_aqi <= 350 and abs(candidate_live_aqi - live_aqi) <= 80:
+                live_aqi = int(round(0.7 * live_aqi + 0.3 * candidate_live_aqi))
+
+        # Keep non-PM pollutants coherent with the PM2.5 level.
+        pm_scale = pm25 / max(prof["pm25_base"] * traffic_factor, 1.0)
+        pm_scale = max(0.7, min(1.6, pm_scale))
+        co = max(0.1, prof["co_base"] * traffic_factor * ward_var * pm_scale + noise(0.15))
+        no2 = max(0.005, prof["no2_base"] * traffic_factor * ward_var * pm_scale + noise(0.006))
+        tvoc = max(0.01, prof["tvoc_base"] * traffic_factor * ward_var * pm_scale + noise(0.04))
+        so2 = max(0.001, prof["so2_base"] * traffic_factor * ward_var * pm_scale + noise(0.0025))
     temperature = 28.0 + 5 * math.sin((hour - 14) * math.pi / 12) + noise(1.2)
     humidity = 55.0 - 15 * math.sin((hour - 14) * math.pi / 12) + noise(2.5)
     wind = interpolate_wind(ward["lat"], ward["lng"])
 
-    aqi = calculate_aqi(pm25, co, no2)
+    # Keep map values in a practical visualization band while preserving variation.
+    raw_aqi = calculate_aqi(pm25, co, no2)
+
+    # Add deterministic per-ward AQI spread so neighboring wards do not cluster.
+    ward_bias = int(round((wid_hash - 0.5) * 10 + (spatial_var - 1.0) * 8))
+    if ward.get("feature_type") == "zone":
+        ward_bias = 0
+
+    # Accuracy-first: rely primarily on live AQI when available,
+    # with a small model component to preserve ward-level local signal.
+    blended_aqi = int(round((0.9 * live_aqi) + (0.1 * raw_aqi))) if live_aqi is not None else raw_aqi
+    blended_aqi += int(round(noise(1.5)))
+    aqi = int(max(0, min(350, blended_aqi)))
     cat = get_aqi_category(aqi)
 
     return {
@@ -208,6 +260,7 @@ def _generate_ward_reading(ward: dict) -> dict:
         "aqi": aqi,
         "aqi_category": cat["category"],
         "aqi_color": cat["color"],
+        "aqi_source": "open-meteo" if live_signal_used else "simulated",
         "source_detected": prof["source"],
         "source_confidence": round(0.65 + random.random() * 0.3, 2) if prof["source"] else None,
     }
@@ -224,7 +277,8 @@ def _to_legacy_source(attr_src: str) -> str:
 @router.get("/wards")
 async def get_all_wards():
     """Return current AQI data for all zones and wards."""
-    readings = [_generate_ward_reading(w) for w in WARD_META]
+    live_zone = await get_live_zone_aqi(ZONE_DEFS)
+    readings = [_generate_ward_reading(w, live_zone.get(w["zone"])) for w in WARD_META]
     ward_readings = [r for r in readings if r.get("feature_type") == "ward"]
     ward_profile_map = {w["ward_id"]: w.get("profile", "mixed") for w in WARD_META}
 
@@ -297,9 +351,15 @@ async def get_ward(ward_id: str):
     ward = next((w for w in WARD_META if w["ward_id"] == ward_id), None)
     if not ward:
         return {"error": "Ward not found"}
-    reading = _generate_ward_reading(ward)
+    live_zone = await get_live_zone_aqi(ZONE_DEFS)
+    reading = _generate_ward_reading(ward, live_zone.get(ward["zone"]))
     if ward.get("feature_type") == "ward":
-        ward_readings = [_generate_ward_reading(w) for w in WARD_META if w.get("feature_type") == "ward"]
+        ward_readings = [
+            _generate_ward_reading(w, live_zone.get(w["zone"]))
+            for w in WARD_META
+            if w.get("feature_type") == "ward"
+        ]
+
         upwind = get_upwind_wards(reading["lat"], reading["lng"], ward_readings, radius_km=7.0)
         upwind_top = []
         for u in upwind[:3]:

@@ -80,7 +80,7 @@ export const fetchMLAnomaly = () => api.get('/api/ml/anomaly').then(r => r.data)
 export const fetchMLSummary = () => api.get('/api/ml/summary').then(r => r.data);
 
 // ─── Industrial Source Attribution (hackdata pipeline) ──
-export const fetchIndustrialSource = (wardId = 'ward_01', transportHours = 1, topSources = 3) =>
+export const fetchIndustrialSource = (wardId = 'ward_1', transportHours = 1, topSources = 3) =>
   api.get(`/api/plume/industrial-source/${wardId}`, {
     params: { transport_hours: transportHours, top_sources: topSources },
   }).then(r => r.data);

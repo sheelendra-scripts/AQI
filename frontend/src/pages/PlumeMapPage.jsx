@@ -9,7 +9,7 @@ import {
   Factory, Wind, AlertTriangle, Shield,
   Play, Pause, RefreshCw, MapPin,
 } from 'lucide-react';
-import { fetchIndustrialSource } from '../services/api';
+import { fetchIndustrialSource, fetchWards } from '../services/api';
 
 /* ── Precompute ward polygon centroids from GeoJSON ───────── */
 const WARD_CENTERS = {};
@@ -148,21 +148,31 @@ const SEV = {
   unknown: '#78716c',
 };
 
-const WARD_OPTIONS = [
-  'ward_01','ward_05','ward_10','ward_25','ward_50',
-  'ward_75','ward_100','ward_125','ward_150','ward_200',
-];
-
 /* ── PlumeMapPage ─────────────────────────────────────────── */
 export default function PlumeMapPage() {
-  const [wardId, setWardId]               = useState('ward_01');
+  const [wardId, setWardId]               = useState('ward_1');
+  const [wardOptions, setWardOptions]     = useState([]);
   const [transportHours, setTransportHours] = useState(1);
   const [data, setData]                   = useState(null);
   const [loading, setLoading]             = useState(false);
   const [simulating, setSimulating]       = useState(false);
   const [flyCenter, setFlyCenter]         = useState([28.6139, 77.209]);
 
+  useEffect(() => {
+    fetchWards().then(res => {
+      const wards = (res?.wards || [])
+        .filter(w => w.feature_type === 'ward')
+        .map(w => ({ id: w.ward_id, name: w.name }))
+        .sort((a, b) => Number(a.id.split('_')[1] || 0) - Number(b.id.split('_')[1] || 0));
+      setWardOptions(wards);
+      if (wards.length > 0 && !wards.some(w => w.id === wardId)) {
+        setWardId(wards[0].id);
+      }
+    }).catch(() => {});
+  }, []);
+
   const load = useCallback(async () => {
+    if (!wardId) return;
     setLoading(true);
     setSimulating(false);
     try {
@@ -216,7 +226,7 @@ export default function PlumeMapPage() {
               onChange={e => setWardId(e.target.value)}
               style={{ fontSize: '0.82rem', padding: '6px 10px', borderRadius: 8, border: '1px solid var(--earth-200)', background: 'white', cursor: 'pointer' }}
             >
-              {WARD_OPTIONS.map(w => <option key={w} value={w}>{w}</option>)}
+              {wardOptions.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             </select>
           </div>
 

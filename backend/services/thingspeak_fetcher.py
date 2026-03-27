@@ -111,7 +111,6 @@ def _safe_float(val, default=0.0) -> float:
     except (ValueError, TypeError):
         return default
 
-
 def _safe_int(val, default=0) -> int:
     try:
         return int(float(val)) if val else default
@@ -147,8 +146,7 @@ async def fetch_latest_from_thingspeak() -> Optional[dict]:
                         co = _safe_float(data.get("field6"))
                         aqi_raw = _safe_int(data.get("field7"))
 
-                        _ = aqi_raw if aqi_raw > 0 else calculate_aqi(pm25, co, no2)
-                        aqi = _random_dashboard_aqi()
+                        aqi = aqi_raw if aqi_raw > 0 else calculate_aqi(pm25, co, no2)
                         category_info = get_aqi_category(aqi)
                         wind = interpolate_wind(28.6350, 77.2280)
                         so2 = max(0.005, 0.02 + aqi * 0.00008 + random.gauss(0, 0.002))
@@ -208,6 +206,11 @@ async def fetch_latest_from_thingspeak() -> Optional[dict]:
 
 async def store_reading(reading: dict):
     """Persist a reading to SQLite."""
+    # Keep DB history representative of real sensor data.
+    # Demo rows are generated on the fly when live data is unavailable.
+    if reading.get("demo"):
+        return
+
     try:
         ts = datetime.fromisoformat(reading["timestamp"].replace("Z", "+00:00"))
     except Exception:
@@ -316,7 +319,7 @@ async def get_thingspeak_history(results: int = 100) -> list:
                     "tvoc": _safe_float(f.get("field4")),
                     "no2": _safe_float(f.get("field5")),
                     "co": _safe_float(f.get("field6")),
-                    "aqi": _random_dashboard_aqi(),
+                    "aqi": _safe_int(f.get("field7")),
                 }
                 for f in feeds
                 if f.get("created_at")
