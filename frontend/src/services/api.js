@@ -4,7 +4,7 @@ import axios from 'axios';
 // Auto-detect: use VITE_API_URL env var, or fallback to localhost for dev
 const API_BASE = import.meta.env.VITE_API_URL || window.__BACKEND_URL__ || (window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://aqms-backend-ue5x.onrender.com');
 const THINGSPEAK_CHANNEL = '3316545';
-const THINGSPEAK_API_KEY = 'RAYZJW1K4FBNIVP6';
+const THINGSPEAK_API_KEY = 'GFGLEQFXSC40CFOO';
 const THINGSPEAK_BASE = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL}`;
 
 const api = axios.create({

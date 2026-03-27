@@ -142,8 +142,8 @@ A `.env` file should exist in the `backend/` directory. Create or update it:
 
 # ThingSpeak IoT Channel (pre-configured defaults)
 THINGSPEAK_CHANNEL_ID=3316545
-THINGSPEAK_READ_API_KEY=RAYZJW1K4FBNIVP6
-THINGSPEAK_WRITE_API_KEY=RAYZJW1K4FBNIVP6
+THINGSPEAK_READ_API_KEY=GFGLEQFXSC40CFOO
+THINGSPEAK_WRITE_API_KEY=6CA62U2GHR3NGFRJ
 
 # Database (SQLite — auto-created, no external DB needed)
 DATABASE_URL=sqlite+aiosqlite:///./aqms.db
