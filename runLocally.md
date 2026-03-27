@@ -141,7 +141,7 @@ A `.env` file should exist in the `backend/` directory. Create or update it:
 # backend/.env
 
 # ThingSpeak IoT Channel (pre-configured defaults)
-THINGSPEAK_CHANNEL_ID=2697383
+THINGSPEAK_CHANNEL_ID=3316545
 THINGSPEAK_READ_API_KEY=RAYZJW1K4FBNIVP6
 THINGSPEAK_WRITE_API_KEY=RAYZJW1K4FBNIVP6
 

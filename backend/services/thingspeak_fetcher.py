@@ -21,7 +21,7 @@ from services.wind_service import interpolate_wind
 
 logger = logging.getLogger("aqms.fetcher")
 
-CHANNEL_ID = os.getenv("THINGSPEAK_CHANNEL_ID", "2697383")
+CHANNEL_ID = os.getenv("THINGSPEAK_CHANNEL_ID", "3316545")
 READ_API_KEY = os.getenv("THINGSPEAK_READ_API_KEY", "RAYZJW1K4FBNIVP6")
 BASE_URL = f"https://api.thingspeak.com/channels/{CHANNEL_ID}"
 

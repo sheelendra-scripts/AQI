@@ -24,7 +24,7 @@ AQMS is a full-stack air quality monitoring platform covering all **250 municipa
 ESP32 + Sensors (PM2.5, CO, NO2, TVOC, DHT22)
        | every 30s via WiFi
        v
-ThingSpeak Cloud (Channel 2697383)
+ThingSpeak Cloud (Channel 3316545)
        | REST API polling (30s)
        v
 FastAPI Backend (Python)
@@ -80,7 +80,7 @@ React Frontend (Vite)
 | Maps | Leaflet + react-leaflet | 1.9.4 / 5.0.0 |
 | Charts | Recharts | 3.8.0 |
 | Animations | Framer Motion | 12.35.1 |
-| IoT | ESP32 + ThingSpeak | Channel 2697383 |
+| IoT | ESP32 + ThingSpeak | Channel 3316545 |
 | Deployment | Vercel (frontend) + Render (backend) | - |
 
 ---
@@ -224,7 +224,7 @@ npm run dev
 # Backend (.env)
 DEMO_MODE=auto          # auto | true | false
 DATABASE_URL=sqlite+aiosqlite:///./aqms.db
-THINGSPEAK_CHANNEL_ID=2697383
+THINGSPEAK_CHANNEL_ID=3316545
 THINGSPEAK_READ_API_KEY=your_thingspeak_read_key
 OWM_API_KEY=            # optional: real weather API (falls back to simulated seasonal wind if empty)
 
